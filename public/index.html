@@ -140,9 +140,14 @@ async function loadCarInfo(vin) {
 
 // 🛢 LIQUIDS
 async function loadLiquids(vin) {
+  const localVin = vin;
+
   try {
     const res = await fetch(`/oil/${vin}`);
     const data = await res.json();
+
+    // 🔥 если VIN уже сменился — игнорируем
+    if (localVin !== currentVin) return;
 
     const oil = data.oil;
 
@@ -152,7 +157,6 @@ async function loadLiquids(vin) {
     }
 
     const volume = oil.volume;
-
     const best = oil.oil?.best || [];
     const alt = oil.oil?.alternative || [];
 
