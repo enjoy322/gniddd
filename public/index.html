@@ -26,14 +26,15 @@ let loading = false;
 
 // 🔹 ИНИЦИАЛИЗАЦИЯ
 async function init() {
-  let path = location.pathname.slice(1);
+  const path = location.pathname.slice(1);
 
-  if (!path) {
-    const res = await fetch("/new-session");
-    const data = await res.json();
-    window.location.href = "/" + data.session_id;
-    return;
-  }
+if (!path) {
+  const res = await fetch("/new-session");
+  const data = await res.json();
+
+  window.location.href = "/" + data.session_id;
+  return;
+}
 
   // 🔥 проверяем существует ли сессия
   const res = await fetch("/data/" + path);
