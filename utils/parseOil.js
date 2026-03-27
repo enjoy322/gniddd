@@ -13,7 +13,13 @@ async function parseEngineBlocks(url) {
     // ✅ только двигатель
     if (!rowText.includes("МАСЛО в ДВИГАТЕЛЬ")) return;
 
-    const blockText = $(el).text();
+    const tds = $(el).find("td");
+
+if (tds.length < 3) return;
+
+const left = $(tds[0]).text();   // двигатель
+const middle = $(tds[1]).text(); // объем
+const right = $(tds[2]).text();  // масло
 
     // ✅ коды двигателей (4 буквы)
     let codes = [...blockText.matchAll(/\b[A-Z]{4}\b/g)]
