@@ -53,7 +53,47 @@ ${generations.map((g, i) => `${i}: ${g}`).join("\n")}
 
   return `https://podbormasla.ru/${brand}/${model}/${gen}/`;
 }
+async function fallbackFromPage(url, car) {
+  const { data } = await axios.get(url, {
+    headers: { "User-Agent": "Mozilla/5.0" }
+  });
 
+  const prompt = `
+Ты автоэксперт.
+
+Вот HTML страницы подбора масла:
+${data.slice(0, 15000)}
+
+Найди данные для двигателя:
+${car.engine.code}
+
+Верни строго JSON:
+
+{
+  "found": true/false,
+  "best": [
+    {
+      "specs": [],
+      "viscosity": []
+    }
+  ],
+  "note": ""
+}
+
+Если не найдено — found=false
+`;
+
+  const response = await openai.responses.create({
+    model: "gpt-5.4-mini",
+    input: prompt
+  });
+
+  try {
+    return JSON.parse(response.output_text);
+  } catch {
+    return null;
+  }
+}
 // 👉 статика (ОБЯЗАТЕЛЬНО)
 app.use(express.static("public"));
 
@@ -436,13 +476,37 @@ app.get("/oil/:vin", async (req, res) => {
     }
 
     const blocks = await parseEngineBlocks(url);
-    const engine = findEngineBlock(blocks, car);
+const engine = findEngineBlock(blocks, car);
 
-    res.json({
-      car,
-      url,
-      oil: engine
-    });
+let oil = null;
+let source = "parsed";
+
+// если парсер нашёл
+if (engine) {
+  oil = engine;
+}
+
+// если нет → GPT по HTML
+else {
+  console.log("PARSER FAIL → GPT");
+
+  const gpt = await fallbackFromPage(url, car);
+
+  if (gpt && gpt.found) {
+    oil = gpt;
+    source = "gpt_html";
+  } else {
+    oil = null;
+    source = "not_found";
+  }
+}
+
+res.json({
+  car,
+  url,
+  source,
+  oil
+});
 
   } catch (e) {
     res.status(500).json({ error: e.message });
