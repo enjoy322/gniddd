@@ -128,8 +128,8 @@ app.get("/data/:id", (req, res) => {
 
   res.json(session);
 });
-
-// SPA фикс
+app.use(express.static("public"));
+// SPA fallback (ТОЛЬКО В КОНЦЕ)
 app.use((req, res) => {
   res.sendFile(__dirname + "/public/index.html");
 });
