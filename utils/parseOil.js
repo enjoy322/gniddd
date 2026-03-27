@@ -1,56 +1,146 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
 
-async function parseEngineBlocks(url) {
-  const axios = require("axios");
-  const cheerio = require("cheerio");
 
+// --------------------
+// 🔧 ENGINE CODES
+// --------------------
+function extractCodes(left) {
+  const part = left.split("Модель:")[1];
+  if (!part) return [];
+
+  return part
+    .split("\n")
+    .map(s => s.trim())
+    .filter(s => s.startsWith("-"))
+    .map(s => s.replace("-", "").trim())
+    .map(s => s.split(" ")[0])
+    .filter(Boolean);
+}
+
+
+// --------------------
+// 🔧 VISCOSITY
+// --------------------
+function extractViscosity(text) {
+  return [...text.matchAll(/\d{1,2}W-\d{2}/g)]
+    .map(m => m[0]);
+}
+
+
+// --------------------
+// 🔧 SPECS (VW + ACEA + API + ILSAC)
+// --------------------
+function extractSpecs(text) {
+  const vag = [...text.matchAll(/[A-Z]{2,}\s?\d{2,3}\.\d{2}/g)].map(m => m[0]);
+
+  const acea = [...text.matchAll(/ACEA\s?[A-Z]\d/g)].map(m => m[0]);
+
+  const api = [...text.matchAll(/API\s?[A-Z]{2}/g)].map(m => m[0]);
+
+  const ilsac = [...text.matchAll(/ILSAC\s?GF-\d/g)].map(m => m[0]);
+
+  return [...new Set([...vag, ...acea, ...api, ...ilsac])];
+}
+
+
+// --------------------
+// 🔧 PARSE OIL BLOCK
+// --------------------
+function parseOilInfo(right) {
+  const result = {
+    best: {
+      viscosity: [],
+      specs: []
+    },
+    alternative: {
+      viscosity: [],
+      specs: []
+    },
+    raw: right
+  };
+
+  // лучший выбор
+  const bestMatch = right.match(/Лучший выбор:(.*?)(Альтернатива:|$)/s);
+
+  if (bestMatch) {
+    const text = bestMatch[1];
+
+    result.best.viscosity = [...new Set(extractViscosity(text))];
+    result.best.specs = [...new Set(extractSpecs(text))];
+  }
+
+  // альтернатива
+  const altMatch = right.match(/Альтернатива:(.*)/s);
+
+  if (altMatch) {
+    const text = altMatch[1];
+
+    result.alternative.viscosity = [...new Set(extractViscosity(text))];
+    result.alternative.specs = [...new Set(extractSpecs(text))];
+  }
+
+  // 🔥 fallback если нет структуры
+  if (
+    result.best.specs.length === 0 &&
+    result.alternative.specs.length === 0
+  ) {
+    const allSpecs = extractSpecs(right);
+    const allVisc = extractViscosity(right);
+
+    result.best.specs = allSpecs;
+    result.best.viscosity = allVisc;
+  }
+
+  return result;
+}
+
+
+// --------------------
+// 🚀 MAIN PARSER
+// --------------------
+async function parseEngineBlocks(url) {
   const { data } = await axios.get(url);
   const $ = cheerio.load(data);
 
   const blocks = [];
 
   $("tr.flexbe-table__row").each((i, el) => {
-    const th = $(el).find("th").first(); // 👈 двигатель тут
+    const th = $(el).find("th").first();
     const tds = $(el).find("td");
 
     if (!th.length || tds.length < 2) return;
 
     const left = th.text().trim();
-    const middle = $(tds[0]).text().trim(); // объем масла
-    const right = $(tds[1]).text().trim();  // допуски и вязкость
+    const middle = $(tds[0]).text().trim();
+    const right = $(tds[1]).text().trim();
 
-    // ✅ только двигатель
+    // только двигатель
     if (!left.includes("МАСЛО") || !left.includes("ДВИГАТЕЛЬ")) return;
 
-    // ✅ коды двигателей
-    let codes = [...left.matchAll(/\b[A-Z]{4}\b/g)]
-      .map(m => m[0])
-      .filter(c => !["SAE", "VAG"].includes(c));
-
+    const codes = extractCodes(left);
     if (codes.length === 0) return;
 
-    // ✅ объем двигателя
     const volumeMatch = left.match(/(\d\.\d)\s*л/);
 
-    // ✅ вязкость
-    const viscosity = [...right.matchAll(/\d{1,2}W-\d{2}/g)]
-      .map(m => m[0]);
-
-    // ✅ допуски
-    const specs = [...right.matchAll(/[A-Z]{2,}\s?\d{2,3}\.\d{2}/g)]
-      .map(m => m[0]);
+    const oil = parseOilInfo(right);
 
     blocks.push({
       codes,
       volume: volumeMatch ? volumeMatch[1] : null,
-      viscosity: [...new Set(viscosity)],
-      specs: [...new Set(specs)],
+
+      oil: {
+        best: oil.best,
+        alternative: oil.alternative
+      },
+
       raw: { left, middle, right }
     });
   });
 
-  // убираем дубли
+  // --------------------
+  // 🧹 REMOVE DUPLICATES
+  // --------------------
   const unique = new Map();
 
   for (let b of blocks) {
@@ -61,7 +151,10 @@ async function parseEngineBlocks(url) {
   return Array.from(unique.values());
 }
 
-// 🔍 поиск нужного двигателя
+
+// --------------------
+// 🔍 FIND ENGINE
+// --------------------
 function findEngineBlock(blocks, car) {
   const code = car.engine.code?.toUpperCase();
 
@@ -69,6 +162,7 @@ function findEngineBlock(blocks, car) {
 
   return blocks.find(b => b.codes.includes(code)) || null;
 }
+
 
 module.exports = {
   parseEngineBlocks,
