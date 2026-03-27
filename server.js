@@ -27,11 +27,12 @@ model: ${car.model}
 generation: ${car.generation}
 year: ${car.year}
 
-Вот список доступных поколений:
+Вот список допустимых вариантов:
 ${generations.join(", ")}
 
-Выбери ОДИН наиболее подходящий вариант.
-Ответ строго строкой из списка, без объяснений.
+Верни ТОЧНО ОДИН вариант ИЗ СПИСКА.
+Нельзя придумывать.
+Ответ — только строка из списка.
 `;
 
   const response = await openai.responses.create({
@@ -39,13 +40,22 @@ ${generations.join(", ")}
     input: prompt
   });
 
-  const gen = response.output_text.trim();
+  let gen = response.output_text.trim();
 
-  if (!generations.includes(gen)) {
-    return null;
+  // 🔥 мягкое приведение
+  gen = gen.replace(/\s+/g, "").toLowerCase();
+
+  const found = generations.find(g =>
+    g.toLowerCase() === gen
+  );
+
+  // fallback
+  if (!found) {
+    console.log("LLM mismatch:", gen);
+    return `https://podbormasla.ru/${brand}/${model}/${generations[0]}/`;
   }
 
-  return `https://podbormasla.ru/${brand}/${model}/${gen}/`;
+  return `https://podbormasla.ru/${brand}/${model}/${found}/`;
 }
 
 // 👉 статика (ОБЯЗАТЕЛЬНО)
