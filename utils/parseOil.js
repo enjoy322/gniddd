@@ -2,6 +2,7 @@ const axios = require("axios");
 const cheerio = require("cheerio");
 
 
+
 // --------------------
 // 🔧 ENGINE CODES
 // --------------------
@@ -100,7 +101,11 @@ function parseOilInfo(right) {
 // 🚀 MAIN PARSER
 // --------------------
 async function parseEngineBlocks(url) {
-  const { data } = await axios.get(url);
+  const { data } = await axios.get(url, {
+  headers: {
+    "User-Agent": "Mozilla/5.0"
+  }
+});
   const $ = cheerio.load(data);
 
   const blocks = [];
