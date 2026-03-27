@@ -223,7 +223,7 @@ app.post("/upload/:id", upload.single("image"), async (req, res) => {
   console.error(e.message);
 }
   }
-});
+);
 app.get("/car-info/:vin", async (req, res) => {
   try {
     const response = await axios.get("https://podbor.upec.pro/api/v1/public/find-car", {
