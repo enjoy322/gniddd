@@ -11,6 +11,74 @@ app.use(express.json());
 // 👉 статика (ОБЯЗАТЕЛЬНО)
 app.use(express.static("public"));
 
+async function matchCarToUrl(car, tree) {
+  const input = `
+Найди лучшее совпадение.
+
+Авто:
+Бренд: ${car.brand}
+Модель: ${car.model}
+Поколение: ${car.generation}
+
+Доступные варианты:
+${JSON.stringify(tree[car.brand.toLowerCase()] || {}, null, 2)}
+
+Ответ:
+{
+  "model": "...",
+  "generation": "..."
+}
+`;
+
+  const res = await openai.responses.create({
+    model: "gpt-5.4-mini",
+    input
+  });
+
+  try {
+    return JSON.parse(res.output_text);
+  } catch {
+    return null;
+  }
+}
+async function parseEngineBlocks(url) {
+  const { data } = await axios.get(url);
+  const $ = cheerio.load(data);
+
+  const blocks = [];
+
+  $("table tr").each((i, el) => {
+    const rowText = $(el).text();
+
+    if (!rowText.includes("Модель")) return;
+
+    const blockText = $(el).text();
+
+    // достаем коды двигателей
+    const codes = [...blockText.matchAll(/[A-Z]{3,5}/g)].map(m => m[0]);
+
+    // объем
+    const volumeMatch = blockText.match(/(\d\.\d)\s*л/);
+
+    // вязкость
+    const viscosity = [...blockText.matchAll(/\d{1,2}W-\d{2}/g)].map(m => m[0]);
+
+    // допуски
+    const specs = [...blockText.matchAll(/[A-Z]{2,}\s?\d{2,3}\.\d{2}/g)].map(m => m[0]);
+
+    if (codes.length === 0) return;
+
+    blocks.push({
+      codes,
+      volume: volumeMatch ? volumeMatch[1] : null,
+      viscosity: [...new Set(viscosity)],
+      specs: [...new Set(specs)],
+      raw: blockText
+    });
+  });
+
+  return blocks;
+}
 
 function normalizeCar(data) {
   return {

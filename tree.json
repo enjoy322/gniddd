@@ -1,0 +1,2709 @@
+{
+  "acura": {
+    "mdx": {
+      "generations": [
+        "gen3"
+      ]
+    },
+    "rdx": {
+      "generations": [
+        "gen2"
+      ]
+    },
+    "tlx": {
+      "generations": [
+        "gen1"
+      ]
+    }
+  },
+  "audi": {
+    "a4": {
+      "generations": [
+        "gen5",
+        "gen4",
+        "gen3",
+        "gen2",
+        "gen1"
+      ]
+    },
+    "a6": {
+      "generations": [
+        "gen5",
+        "gen4",
+        "gen3",
+        "gen2"
+      ]
+    },
+    "q3": {
+      "generations": [
+        "gen2",
+        "gen1"
+      ]
+    },
+    "q5": {
+      "generations": [
+        "gen2",
+        "gen1"
+      ]
+    },
+    "q7": {
+      "generations": [
+        "gen2",
+        "gen1"
+      ]
+    }
+  },
+  "bmw": {
+    "x1": {
+      "generations": [
+        "gen2",
+        "gen1"
+      ]
+    },
+    "x3": {
+      "generations": [
+        "gen3",
+        "gen2"
+      ]
+    },
+    "x5": {
+      "generations": [
+        "gen4",
+        "gen3",
+        "gen2"
+      ]
+    },
+    "x6": {
+      "generations": [
+        "gen3",
+        "gen2",
+        "gen1"
+      ]
+    }
+  },
+  "changan": {
+    "cs35": {
+      "generations": [
+        "cs35_1"
+      ]
+    },
+    "cs35plus": {
+      "generations": [
+        "cs35plus_1"
+      ]
+    },
+    "cs55": {
+      "generations": [
+        "cs55_1"
+      ]
+    },
+    "cs55plus": {
+      "generations": [
+        "cs55plus_2"
+      ]
+    },
+    "cs75": {
+      "generations": [
+        "cs75_1"
+      ]
+    },
+    "cs75plus": {
+      "generations": [
+        "cs75plus_1"
+      ]
+    },
+    "cs85_coupe": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "cs95": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "eado_plus": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "hunter_plus": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "lamore": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "uni-k": {
+      "generations": [
+        "uni-k_1"
+      ]
+    },
+    "uni-s": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "uni-t": {
+      "generations": [
+        "uni-t_1"
+      ]
+    },
+    "uni-v": {
+      "generations": [
+        "uni-v_1"
+      ]
+    }
+  },
+  "chery": {
+    "amulet_a15": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "bonus_a13": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "bonus_a19": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "fora_a21": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "indis": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "kimo": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "tiggo_3": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "tiggo_4": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "tiggo_4_pro": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "tiggo_5": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "tiggo_7": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "tiggo_7_pro": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "tiggo_7_pro_max": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "tiggo_8": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "tiggo_8_pro": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "tiggo_8_pro_max": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "tiggo_t11": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "very_a13": {
+      "generations": [
+        "gen1"
+      ]
+    }
+  },
+  "chevrolet": {
+    "aveo": {
+      "generations": [
+        "aveo_1",
+        "aveo_2"
+      ]
+    },
+    "captiva": {
+      "generations": [
+        "captiva_1",
+        "captiva_1r"
+      ]
+    },
+    "cruze": {
+      "generations": [
+        "cruze_1"
+      ]
+    },
+    "lacetti": {
+      "generations": [
+        "lacetti_1"
+      ]
+    },
+    "lanos": {
+      "generations": [
+        "lanos_1"
+      ]
+    },
+    "niva": {
+      "generations": [
+        "niva_1"
+      ]
+    }
+  },
+  "daewoo": {
+    "gentra": {
+      "generations": [
+        "2gen"
+      ]
+    },
+    "matiz": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "nexia": {
+      "generations": [
+        "1gen"
+      ]
+    }
+  },
+  "daihatsu": {
+    "mira": {
+      "generations": [
+        "7gen"
+      ]
+    },
+    "mira_es": {
+      "generations": [
+        "2gen",
+        "1gen"
+      ]
+    },
+    "move": {
+      "generations": [
+        "6gen"
+      ]
+    },
+    "move_conte": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "rocky": {
+      "generations": [
+        "2gen"
+      ]
+    }
+  },
+  "datsun": {
+    "mi-do": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "on-do": {
+      "generations": [
+        "1gen"
+      ]
+    }
+  },
+  "exeed": {
+    "lx": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "rx": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "txl": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "vx": {
+      "generations": [
+        "gen1"
+      ]
+    }
+  },
+  "faw": {
+    "bestune_b70": {
+      "generations": [
+        "gen3"
+      ]
+    },
+    "besturn_x80": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "j6_ca3250": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "j6_ca3310": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "j6_ca4180": {
+      "generations": [
+        "gen1"
+      ]
+    }
+  },
+  "ford": {
+    "bronco": {
+      "generations": [
+        "gen6"
+      ]
+    },
+    "bronco_sport": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "escape": {
+      "generations": [
+        "gen4",
+        "gen3",
+        "gen2_ru",
+        "gen2",
+        "gen1"
+      ]
+    },
+    "focus": {
+      "generations": [
+        "focus_2",
+        "focus_3",
+        "focus_4"
+      ]
+    },
+    "fusion": {
+      "generations": [
+        "fusion_1"
+      ]
+    },
+    "kuga": {
+      "generations": [
+        "kuga_1",
+        "kuga_2",
+        "kuga_3"
+      ]
+    },
+    "mondeo": {
+      "generations": [
+        "mondeo_4",
+        "mondeo_5"
+      ]
+    },
+    "ranger": {
+      "generations": [
+        "gen3",
+        "gen2"
+      ]
+    },
+    "transit": {
+      "generations": [
+        "transit_6",
+        "transit_7"
+      ]
+    }
+  },
+  "gac": {
+    "empow": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "gs3": {
+      "generations": [
+        "gen2",
+        "gen1"
+      ]
+    },
+    "gs4": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "gs8": {
+      "generations": [
+        "gen2",
+        "gen1"
+      ]
+    },
+    "m8": {
+      "generations": [
+        "gen2"
+      ]
+    }
+  },
+  "geely": {
+    "atlas": {
+      "generations": [
+        "2gen",
+        "1gen"
+      ]
+    },
+    "atlas_pro": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "coolray": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "emgrand_ec7": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "emgrand_x7": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "monjaro": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "mk_cross": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "tugella": {
+      "generations": [
+        "1gen"
+      ]
+    }
+  },
+  "great_wall": {
+    "hover": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "hover_h3": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "hover_h5": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "safe": {
+      "generations": [
+        "1gen"
+      ]
+    }
+  },
+  "haval": {
+    "dargo": {
+      "generations": [
+        "dargo_1"
+      ]
+    },
+    "f7": {
+      "generations": [
+        "f7_1"
+      ]
+    },
+    "f7x": {
+      "generations": [
+        "f7x_1"
+      ]
+    },
+    "h6": {
+      "generations": [
+        "h6_1"
+      ]
+    },
+    "h9": {
+      "generations": [
+        "h9_1"
+      ]
+    },
+    "jolion": {
+      "generations": [
+        "jolion_1"
+      ]
+    },
+    "m6": {
+      "generations": [
+        "m6_2"
+      ]
+    }
+  },
+  "honda": {
+    "accord": {
+      "generations": [
+        "gen11",
+        "gen10",
+        "gen9",
+        "gen8",
+        "gen7"
+      ]
+    },
+    "airwave": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "capa": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "civic": {
+      "generations": [
+        "gen11",
+        "gen10",
+        "gen9",
+        "gen8",
+        "gen7"
+      ]
+    },
+    "crossroad": {
+      "generations": [
+        "gen2"
+      ]
+    },
+    "CRV": {
+      "generations": []
+    },
+    "fit": {
+      "generations": [
+        "gen4",
+        "gen3",
+        "gen2",
+        "gen1"
+      ]
+    },
+    "fit_shuttle": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "freed": {
+      "generations": [
+        "gen2",
+        "gen1"
+      ]
+    },
+    "hrv": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "insight": {
+      "generations": [
+        "gen3",
+        "gen2"
+      ]
+    },
+    "jazz": {
+      "generations": [
+        "gen2",
+        "gen1"
+      ]
+    },
+    "odyssey": {
+      "generations": [
+        "gen5",
+        "gen4",
+        "gen3",
+        "gen2"
+      ]
+    },
+    "partner": {
+      "generations": [
+        "gen2"
+      ]
+    },
+    "pilot": {
+      "generations": [
+        "gen3",
+        "gen2"
+      ]
+    },
+    "shuttle": {
+      "generations": [
+        "gen2"
+      ]
+    },
+    "stepwgn": {
+      "generations": [
+        "gen6",
+        "gen5",
+        "gen4",
+        "gen3",
+        "gen2"
+      ]
+    },
+    "stream": {
+      "generations": [
+        "gen2",
+        "gen1"
+      ]
+    },
+    "torneo": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "vezel": {
+      "generations": [
+        "gen2",
+        "gen1"
+      ]
+    }
+  },
+  "hyundai": {
+    "accent": {
+      "generations": [
+        "gen2"
+      ]
+    },
+    "creta": {
+      "generations": [
+        "gen2",
+        "gen1"
+      ]
+    },
+    "elantra": {
+      "generations": [
+        "gen7",
+        "gen6",
+        "gen5",
+        "gen4"
+      ]
+    },
+    "getz": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "h1": {
+      "generations": [
+        "gen2"
+      ]
+    },
+    "i30": {
+      "generations": [
+        "gen3",
+        "gen2",
+        "gen1"
+      ]
+    },
+    "i40": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "ix35": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "ix55": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "matrix": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "palisade": {
+      "generations": [
+        "gen2",
+        "gen1"
+      ]
+    },
+    "santa_fe": {
+      "generations": [
+        "gen5",
+        "gen4",
+        "gen3"
+      ]
+    },
+    "solaris": {
+      "generations": [
+        "gen2",
+        "gen1"
+      ]
+    },
+    "sonata": {
+      "generations": [
+        "gen8",
+        "gen7",
+        "gen6",
+        "gen5"
+      ]
+    },
+    "starex": {
+      "generations": [
+        "gen2",
+        "gen1"
+      ]
+    },
+    "staria": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "tucson": {
+      "generations": [
+        "gen4",
+        "gen3",
+        "gen1"
+      ]
+    },
+    "verna": {
+      "generations": [
+        "gen2"
+      ]
+    }
+  },
+  "jac": {
+    "j7": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "js6": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "t6": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "t8": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "t8_pro": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "t9": {
+      "generations": [
+        "gen1"
+      ]
+    }
+  },
+  "jaecoo": {
+    "j7": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "j8": {
+      "generations": [
+        "gen1"
+      ]
+    }
+  },
+  "jetour": {
+    "dashing": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "t1": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "t2": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "x70plus": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "x90plus": {
+      "generations": [
+        "gen1"
+      ]
+    }
+  },
+  "kia": {
+    "carens": {
+      "generations": [
+        "gen2"
+      ]
+    },
+    "carnival": {
+      "generations": [
+        "gen4",
+        "gen2"
+      ]
+    },
+    "ceed": {
+      "generations": [
+        "gen3",
+        "gen2",
+        "gen1"
+      ]
+    },
+    "cerato": {
+      "generations": [
+        "gen4",
+        "gen3",
+        "gen2",
+        "gen1"
+      ]
+    },
+    "k5": {
+      "generations": [
+        "gen3"
+      ]
+    },
+    "magentis": {
+      "generations": [
+        "gen2",
+        "gen1"
+      ]
+    },
+    "mohave": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "optima": {
+      "generations": [
+        "gen4",
+        "gen3"
+      ]
+    },
+    "picanto": {
+      "generations": [
+        "gen3",
+        "gen2",
+        "gen1"
+      ]
+    },
+    "rio": {
+      "generations": [
+        "gen4",
+        "gen3",
+        "gen2",
+        "gen1"
+      ]
+    },
+    "seltos": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "sorento": {
+      "generations": [
+        "gen4",
+        "gen3",
+        "gen2",
+        "gen1"
+      ]
+    },
+    "soul": {
+      "generations": [
+        "gen3",
+        "gen2",
+        "gen1"
+      ]
+    },
+    "spectra": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "sportage": {
+      "generations": [
+        "gen5",
+        "gen4",
+        "gen3",
+        "gen2",
+        "gen1"
+      ]
+    },
+    "stinger": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "venga": {
+      "generations": [
+        "gen1"
+      ]
+    }
+  },
+  "lada": {
+    "granta": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "kalina": {
+      "generations": [
+        "gen2",
+        "gen1"
+      ]
+    },
+    "largus": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "niva": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "priora": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "vesta": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "vesta_cross": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "xray": {
+      "generations": [
+        "gen1"
+      ]
+    }
+  },
+  "lexus": {
+    "gs300": {
+      "generations": [
+        "gen3",
+        "gen4"
+      ]
+    },
+    "gs300h": {
+      "generations": [
+        "gen4"
+      ]
+    },
+    "gx460": {
+      "generations": [
+        "gen2"
+      ]
+    },
+    "gx470": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "is250": {
+      "generations": [
+        "gen2",
+        "gen3"
+      ]
+    },
+    "lx450d": {
+      "generations": [
+        "gen3"
+      ]
+    },
+    "lx470": {
+      "generations": [
+        "gen2"
+      ]
+    },
+    "lx500d": {
+      "generations": [
+        "gen4"
+      ]
+    },
+    "lx570": {
+      "generations": [
+        "gen3"
+      ]
+    },
+    "lx600": {
+      "generations": [
+        "gen4"
+      ]
+    },
+    "nx200": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "nx200t": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "nx250": {
+      "generations": [
+        "gen2"
+      ]
+    },
+    "nx300": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "nx300h": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "nx350": {
+      "generations": [
+        "gen2"
+      ]
+    },
+    "nx350h": {
+      "generations": [
+        "gen2"
+      ]
+    },
+    "nx450h": {
+      "generations": [
+        "gen2"
+      ]
+    },
+    "rx200t": {
+      "generations": [
+        "gen4"
+      ]
+    },
+    "rx270": {
+      "generations": [
+        "gen3"
+      ]
+    },
+    "rx300": {
+      "generations": [
+        "gen4",
+        "gen2"
+      ]
+    },
+    "rx330": {
+      "generations": [
+        "gen2"
+      ]
+    },
+    "rx350": {
+      "generations": [
+        "gen5",
+        "gen4",
+        "gen3",
+        "gen2"
+      ]
+    },
+    "rx400h": {
+      "generations": [
+        "gen2"
+      ]
+    },
+    "rx450h": {
+      "generations": [
+        "gen5",
+        "gen4",
+        "gen3"
+      ]
+    },
+    "rx500h": {
+      "generations": [
+        "gen5"
+      ]
+    }
+  },
+  "lifan": {
+    "solano": {
+      "generations": [
+        "2gen",
+        "1gen"
+      ]
+    },
+    "x50": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "x60": {
+      "generations": [
+        "1gen"
+      ]
+    }
+  },
+  "lixiang": {
+    "l6": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "l7": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "l9": {
+      "generations": [
+        "gen1"
+      ]
+    }
+  },
+  "mazda": {
+    "626": {
+      "generations": [
+        "gen5"
+      ]
+    },
+    "mazda3": {
+      "generations": [
+        "gen4",
+        "gen3",
+        "gen2",
+        "gen1"
+      ]
+    },
+    "mazda6": {
+      "generations": [
+        "gen3",
+        "gen2",
+        "gen1"
+      ]
+    },
+    "axela": {
+      "generations": [
+        "gen3",
+        "gen2"
+      ]
+    },
+    "bongo": {
+      "generations": [
+        "gen5",
+        "gen4"
+      ]
+    },
+    "bongo_brawny": {
+      "generations": [
+        "gen5"
+      ]
+    },
+    "bt-50": {
+      "generations": [
+        "gen2",
+        "gen1"
+      ]
+    },
+    "cx3": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "cx-30": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "cx5": {
+      "generations": [
+        "gen2",
+        "gen1"
+      ]
+    },
+    "cx-50": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "cx7": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "cx-9": {
+      "generations": [
+        "gen2",
+        "gen1"
+      ]
+    },
+    "demio": {
+      "generations": [
+        "gen4",
+        "gen3"
+      ]
+    },
+    "familia_van": {
+      "generations": [
+        "gen11",
+        "gen10"
+      ]
+    },
+    "mpv": {
+      "generations": [
+        "gen3",
+        "gen2"
+      ]
+    },
+    "premacy": {
+      "generations": [
+        "gen3",
+        "gen2",
+        "gen1"
+      ]
+    },
+    "titan": {
+      "generations": [
+        "gen7",
+        "gen6"
+      ]
+    },
+    "tribute": {
+      "generations": [
+        "gen2",
+        "gen1"
+      ]
+    }
+  },
+  "mercedes": {
+    "a-class": {
+      "generations": []
+    },
+    "c-class": {
+      "generations": [
+        "w205",
+        "w204",
+        "w203"
+      ]
+    },
+    "e-class": {
+      "generations": []
+    },
+    "g-class": {
+      "generations": []
+    },
+    "gl-class": {
+      "generations": [
+        "x166",
+        "x164"
+      ]
+    },
+    "gla": {
+      "generations": []
+    },
+    "glc": {
+      "generations": [
+        "x253"
+      ]
+    },
+    "gle": {
+      "generations": [
+        "w166"
+      ]
+    },
+    "glk": {
+      "generations": [
+        "x204"
+      ]
+    },
+    "m-class": {
+      "generations": [
+        "w166",
+        "w164",
+        "w163"
+      ]
+    },
+    "s-class": {
+      "generations": []
+    }
+  },
+  "mitsubishi": {
+    "airtrek": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "asx": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "carisma": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "colt": {
+      "generations": [
+        "gen6"
+      ]
+    },
+    "delica": {
+      "generations": [
+        "gen4"
+      ]
+    },
+    "delica_d5": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "diamante": {
+      "generations": [
+        "gen2"
+      ]
+    },
+    "galant": {
+      "generations": [
+        "gen9",
+        "gen8"
+      ]
+    },
+    "grandis": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "l200": {
+      "generations": [
+        "gen5",
+        "gen4"
+      ]
+    },
+    "lancer": {
+      "generations": [
+        "gen10",
+        "gen9"
+      ]
+    },
+    "outlander": {
+      "generations": [
+        "gen4",
+        "gen3",
+        "gen2"
+      ]
+    },
+    "pajero": {
+      "generations": [
+        "gen4",
+        "gen3"
+      ]
+    },
+    "pajero_mini": {
+      "generations": [
+        "gen2"
+      ]
+    },
+    "pajero_sport": {
+      "generations": [
+        "gen3",
+        "gen2",
+        "gen1"
+      ]
+    },
+    "rvr": {
+      "generations": [
+        "gen3"
+      ]
+    }
+  },
+  "nissan": {
+    "ad": {
+      "generations": [
+        "4gen",
+        "3gen"
+      ]
+    },
+    "almera": {
+      "generations": [
+        "3gen",
+        "2gen"
+      ]
+    },
+    "bluebird_sylphy": {
+      "generations": [
+        "2gen",
+        "1gen"
+      ]
+    },
+    "cube": {
+      "generations": [
+        "3gen",
+        "2gen",
+        "1gen"
+      ]
+    },
+    "juke": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "latio": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "liberty": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "march": {
+      "generations": [
+        "3gen",
+        "4gen"
+      ]
+    },
+    "micra": {
+      "generations": [
+        "3gen"
+      ]
+    },
+    "murano": {
+      "generations": [
+        "3gen",
+        "2gen",
+        "1gen"
+      ]
+    },
+    "navara": {
+      "generations": [
+        "2gen"
+      ]
+    },
+    "note": {
+      "generations": [
+        "3gen",
+        "2gen",
+        "1gen"
+      ]
+    },
+    "pathfinder": {
+      "generations": [
+        "5gen",
+        "4gen",
+        "3gen"
+      ]
+    },
+    "patrol": {
+      "generations": [
+        "6gen",
+        "5gen"
+      ]
+    },
+    "primera": {
+      "generations": [
+        "3gen"
+      ]
+    },
+    "qashqai": {
+      "generations": [
+        "3gen",
+        "2gen",
+        "1gen"
+      ]
+    },
+    "sentra": {
+      "generations": [
+        "7gen"
+      ]
+    },
+    "serena": {
+      "generations": [
+        "5gen",
+        "4gen",
+        "3gen",
+        "2gen"
+      ]
+    },
+    "sunny": {
+      "generations": [
+        "9gen"
+      ]
+    },
+    "teana": {
+      "generations": [
+        "3gen",
+        "2gen",
+        "1gen"
+      ]
+    },
+    "terrano": {
+      "generations": [
+        "3gen",
+        "2gen"
+      ]
+    },
+    "tiida": {
+      "generations": [
+        "?utm_term=Tiida"
+      ]
+    },
+    "tiida_latio": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "wingroad": {
+      "generations": [
+        "3gen"
+      ]
+    },
+    "x-trail": {
+      "generations": [
+        "3gen",
+        "2gen",
+        "1gen"
+      ]
+    }
+  },
+  "omoda": {
+    "c5": {
+      "generations": [
+        "c5_1"
+      ]
+    },
+    "s5": {
+      "generations": [
+        "s5_1"
+      ]
+    },
+    "s5gt": {
+      "generations": [
+        "s5gt_1"
+      ]
+    }
+  },
+  "opel": {
+    "astra": {
+      "generations": [
+        "astra_j",
+        "astra_h"
+      ]
+    },
+    "corsa": {
+      "generations": [
+        "corsa_d"
+      ]
+    },
+    "mokka": {
+      "generations": [
+        "mokka_1"
+      ]
+    },
+    "vectra": {
+      "generations": [
+        "vectra_3"
+      ]
+    },
+    "zafira": {
+      "generations": [
+        "zafira_c",
+        "zafira_b"
+      ]
+    }
+  },
+  "peugeot": {
+    "206": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "208": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "301": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "307": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "308": {
+      "generations": [
+        "2gen",
+        "1gen"
+      ]
+    },
+    "406": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "407": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "408": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "508": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "2008": {
+      "generations": [
+        "2gen",
+        "1gen"
+      ]
+    },
+    "3008": {
+      "generations": [
+        "2gen",
+        "1gen"
+      ]
+    },
+    "4007": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "5008": {
+      "generations": [
+        "2gen"
+      ]
+    },
+    "boxer": {
+      "generations": [
+        "2gen"
+      ]
+    },
+    "expert": {
+      "generations": [
+        "3gen",
+        "2gen"
+      ]
+    },
+    "partner": {
+      "generations": [
+        "2gen"
+      ]
+    },
+    "partner_tepee": {
+      "generations": [
+        "2gen"
+      ]
+    },
+    "traveller": {
+      "generations": [
+        "1gen"
+      ]
+    }
+  },
+  "renault": {
+    "arkana": {
+      "generations": [
+        "arkana_1"
+      ]
+    },
+    "duster": {
+      "generations": [
+        "duster_1",
+        "duster_2"
+      ]
+    },
+    "fluence": {
+      "generations": [
+        "fluence_1"
+      ]
+    },
+    "kaptur": {
+      "generations": [
+        "kaptur_1"
+      ]
+    },
+    "logan": {
+      "generations": [
+        "logan_1",
+        "logan_2"
+      ]
+    },
+    "megane": {
+      "generations": [
+        "megane_3",
+        "megane_4"
+      ]
+    },
+    "sandero": {
+      "generations": [
+        "sandero_1",
+        "sandero_2"
+      ]
+    },
+    "scenic": {
+      "generations": [
+        "scenic_2",
+        "scenic_3"
+      ]
+    }
+  },
+  "skoda": {
+    "fabia": {
+      "generations": [
+        "fabia_2"
+      ]
+    },
+    "kodiaq": {
+      "generations": [
+        "kodiaq_1"
+      ]
+    },
+    "octavia": {
+      "generations": [
+        "octavia_4",
+        "octavia_3",
+        "octavia_2"
+      ]
+    },
+    "rapid": {
+      "generations": [
+        "rapid_2",
+        "rapid_1"
+      ]
+    },
+    "yeti": {
+      "generations": [
+        "yeti_1"
+      ]
+    }
+  },
+  "ssangyong": {
+    "actyon": {
+      "generations": [
+        "gen2",
+        "gen1"
+      ]
+    },
+    "actyon_sports": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "korando": {
+      "generations": [
+        "gen4",
+        "gen3"
+      ]
+    },
+    "kyron": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "rexton": {
+      "generations": [
+        "gen4",
+        "gen3",
+        "gen2",
+        "gen1"
+      ]
+    }
+  },
+  "subaru": {
+    "exiga": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "forester": {
+      "generations": [
+        "forester_6",
+        "forester_5",
+        "forester_4",
+        "forester_3",
+        "forester_2",
+        "forester_1"
+      ]
+    },
+    "legacy": {
+      "generations": [
+        "gen6",
+        "gen5",
+        "gen4"
+      ]
+    },
+    "levorg": {
+      "generations": [
+        "gen2",
+        "gen1"
+      ]
+    },
+    "outback": {
+      "generations": [
+        "gen6",
+        "gen5",
+        "gen4",
+        "gen3"
+      ]
+    },
+    "xv": {
+      "generations": [
+        "gen2",
+        "gen1"
+      ]
+    }
+  },
+  "suzuki": {
+    "escudo": {
+      "generations": [
+        "4gen",
+        "3gen",
+        "2gen"
+      ]
+    },
+    "grand_vitara": {
+      "generations": [
+        "2gen",
+        "1gen"
+      ]
+    },
+    "ignis": {
+      "generations": [
+        "2gen",
+        "1gen"
+      ]
+    },
+    "jimny": {
+      "generations": [
+        "4gen",
+        "3gen"
+      ]
+    },
+    "jimny_sierra": {
+      "generations": [
+        "4gen",
+        "3gen"
+      ]
+    },
+    "solio": {
+      "generations": [
+        "4gen",
+        "3gen",
+        "2gen",
+        "1gen"
+      ]
+    },
+    "swift": {
+      "generations": [
+        "6gen",
+        "5gen",
+        "4gen",
+        "3gen"
+      ]
+    },
+    "sx4": {
+      "generations": [
+        "2gen",
+        "1gen"
+      ]
+    },
+    "vitara": {
+      "generations": [
+        "4gen"
+      ]
+    },
+    "wagon_r_solio": {
+      "generations": [
+        "2gen"
+      ]
+    }
+  },
+  "tank": {
+    "300": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "400": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "500": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "700": {
+      "generations": [
+        "1gen"
+      ]
+    }
+  },
+  "toyota": {
+    "allion": {
+      "generations": [
+        "2gen"
+      ]
+    },
+    "alphard": {
+      "generations": [
+        "4gen",
+        "3gen",
+        "2gen"
+      ]
+    },
+    "aqua": {
+      "generations": [
+        "2gen",
+        "1gen"
+      ]
+    },
+    "auris": {
+      "generations": [
+        "2gen",
+        "1gen"
+      ]
+    },
+    "avensis": {
+      "generations": [
+        "3gen",
+        "2gen"
+      ]
+    },
+    "caldina": {
+      "generations": [
+        "3gen",
+        "2gen"
+      ]
+    },
+    "camry": {
+      "generations": [
+        "9gen",
+        "8.5gen",
+        "8gen",
+        "7gen",
+        "6gen"
+      ]
+    },
+    "carina": {
+      "generations": [
+        "7gen",
+        "6gen"
+      ]
+    },
+    "c-hr": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "corona_premio": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "corolla": {
+      "generations": [
+        "12gen",
+        "11gen",
+        "10gen",
+        "9gen"
+      ]
+    },
+    "corolla_axio": {
+      "generations": [
+        "2gen",
+        "1gen"
+      ]
+    },
+    "corolla_fielder": {
+      "generations": [
+        "3gen",
+        "2gen",
+        "1gen"
+      ]
+    },
+    "corolla_spacio": {
+      "generations": [
+        "2gen"
+      ]
+    },
+    "crown": {
+      "generations": [
+        "16gen",
+        "15gen",
+        "gen14",
+        "gen13"
+      ]
+    },
+    "esquire": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "estima": {
+      "generations": [
+        "3gen",
+        "2gen"
+      ]
+    },
+    "fj_cruiser": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "harrier": {
+      "generations": [
+        "4gen",
+        "3gen",
+        "2gen",
+        "1gen"
+      ]
+    },
+    "hiace": {
+      "generations": [
+        "6gen",
+        "5gen"
+      ]
+    },
+    "highlander": {
+      "generations": [
+        "4gen",
+        "3gen",
+        "2gen"
+      ]
+    },
+    "hilux": {
+      "generations": [
+        "8gen",
+        "7gen"
+      ]
+    },
+    "hilux_surf": {
+      "generations": [
+        "4gen"
+      ]
+    },
+    "ipsum": {
+      "generations": [
+        "2gen",
+        "1gen"
+      ]
+    },
+    "ist": {
+      "generations": [
+        "2gen",
+        "1gen"
+      ]
+    },
+    "isis": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "land_cruiser": {
+      "generations": [
+        "12gen",
+        "11gen",
+        "10gen"
+      ]
+    },
+    "land_cruiser_prado": {
+      "generations": [
+        "5gen",
+        "4gen",
+        "3gen",
+        "2gen"
+      ]
+    },
+    "lite_ace": {
+      "generations": [
+        "6gen"
+      ]
+    },
+    "mark_2": {
+      "generations": [
+        "9gen"
+      ]
+    },
+    "mark_x": {
+      "generations": [
+        "2gen",
+        "1gen"
+      ]
+    },
+    "noah": {
+      "generations": [
+        "4gen",
+        "3gen",
+        "2gen",
+        "1gen"
+      ]
+    },
+    "passo": {
+      "generations": [
+        "3gen",
+        "2gen",
+        "1gen"
+      ]
+    },
+    "platz": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "premio": {
+      "generations": [
+        "2gen",
+        "1gen"
+      ]
+    },
+    "prius": {
+      "generations": [
+        "5gen",
+        "4gen",
+        "3gen",
+        "2gen",
+        "1.1gen",
+        "1gen"
+      ]
+    },
+    "probox": {
+      "generations": [
+        "xp160",
+        "xp50"
+      ]
+    },
+    "ractis": {
+      "generations": [
+        "2gen",
+        "1gen"
+      ]
+    },
+    "raize": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "raum": {
+      "generations": [
+        "2gen",
+        "1gen"
+      ]
+    },
+    "rav4": {
+      "generations": [
+        "5gen",
+        "4gen",
+        "3gen",
+        "2gen"
+      ]
+    },
+    "roomy": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "rush": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "sprinter_carib": {
+      "generations": [
+        "3gen"
+      ]
+    },
+    "succeed": {
+      "generations": [
+        "xp160",
+        "xp50"
+      ]
+    },
+    "town_ace": {
+      "generations": [
+        "4gen"
+      ]
+    },
+    "tundra": {
+      "generations": [
+        "3gen",
+        "2gen"
+      ]
+    },
+    "vanguard": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "venza": {
+      "generations": [
+        "2gen",
+        "1gen"
+      ]
+    },
+    "verso": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "vista": {
+      "generations": [
+        "5gen"
+      ]
+    },
+    "vitz": {
+      "generations": [
+        "3gen",
+        "2gen"
+      ]
+    },
+    "voxy": {
+      "generations": [
+        "4gen",
+        "3gen",
+        "2gen",
+        "1gen"
+      ]
+    },
+    "wish": {
+      "generations": [
+        "2gen",
+        "1gen"
+      ]
+    },
+    "yaris": {
+      "generations": [
+        "2gen"
+      ]
+    }
+  },
+  "volkswagen": {
+    "jetta": {
+      "generations": [
+        "gen7",
+        "gen6"
+      ]
+    },
+    "passat": {
+      "generations": [
+        "gen8",
+        "gen7",
+        "gen6",
+        "gen5"
+      ]
+    },
+    "polo": {
+      "generations": [
+        "gen6",
+        "gen5"
+      ]
+    },
+    "tiguan": {
+      "generations": [
+        "gen2",
+        "gen1"
+      ]
+    },
+    "touareg": {
+      "generations": [
+        "gen3",
+        "gen2",
+        "gen1"
+      ]
+    }
+  },
+  "volvo": {
+    "s40": {
+      "generations": [
+        "2gen"
+      ]
+    },
+    "s60": {
+      "generations": [
+        "3gen",
+        "2gen"
+      ]
+    },
+    "s80": {
+      "generations": [
+        "2gen"
+      ]
+    },
+    "s90": {
+      "generations": [
+        "2gen"
+      ]
+    },
+    "v40": {
+      "generations": [
+        "2gen"
+      ]
+    },
+    "v50": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "v60": {
+      "generations": [
+        "2gen",
+        "1gen"
+      ]
+    },
+    "v70": {
+      "generations": [
+        "3gen"
+      ]
+    },
+    "v90": {
+      "generations": [
+        "2gen"
+      ]
+    },
+    "xc40": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "xc60": {
+      "generations": [
+        "2gen",
+        "1gen"
+      ]
+    },
+    "xc70": {
+      "generations": [
+        "3gen"
+      ]
+    },
+    "xc90": {
+      "generations": [
+        "2gen",
+        "1gen"
+      ]
+    }
+  },
+  "voyah": {
+    "dream": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "free": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "passion": {
+      "generations": [
+        "gen1"
+      ]
+    }
+  },
+  "zeekr": {
+    "001": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "x": {
+      "generations": [
+        "gen1"
+      ]
+    }
+  },
+  "moskvitch": {
+    "moskvitch_3": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "moskvitch_3e": {
+      "generations": [
+        "gen1"
+      ]
+    },
+    "moskvitch_6": {
+      "generations": [
+        "gen1"
+      ]
+    }
+  },
+  "uaz": {
+    "patriot": {
+      "generations": [
+        "1gen"
+      ]
+    },
+    "hunter": {
+      "generations": [
+        "1gen"
+      ]
+    }
+  },
+  "caterpillar": {
+    "bd": {
+      "generations": []
+    },
+    "ep": {
+      "generations": []
+    },
+    "fp": {
+      "generations": []
+    },
+    "ge": {
+      "generations": []
+    },
+    "ke": {
+      "generations": []
+    }
+  },
+  "daf": {
+    "xf": {
+      "generations": []
+    },
+    "cf": {
+      "generations": []
+    },
+    "lf": {
+      "generations": []
+    }
+  },
+  "doosan": {
+    "fp": {
+      "generations": []
+    },
+    "ge": {
+      "generations": []
+    },
+    "ke": {
+      "generations": []
+    }
+  },
+  "hyundai-ce": {
+    "fp": {
+      "generations": []
+    },
+    "ep": {
+      "generations": []
+    },
+    "ge": {
+      "generations": []
+    },
+    "ke": {
+      "generations": []
+    }
+  },
+  "iveco": {
+    "stralis": {
+      "generations": []
+    },
+    "eurocargo": {
+      "generations": []
+    },
+    "trakker": {
+      "generations": []
+    }
+  },
+  "kamaz": {
+    "5320": {
+      "generations": []
+    },
+    "5360": {
+      "generations": []
+    },
+    "5460": {
+      "generations": []
+    },
+    "5490": {
+      "generations": []
+    },
+    "6460": {
+      "generations": []
+    },
+    "6520": {
+      "generations": []
+    },
+    "6540": {
+      "generations": []
+    },
+    "43118": {
+      "generations": []
+    },
+    "53229": {
+      "generations": []
+    },
+    "55111": {
+      "generations": []
+    },
+    "65115": {
+      "generations": []
+    },
+    "65116": {
+      "generations": []
+    },
+    "65117": {
+      "generations": []
+    },
+    "65201": {
+      "generations": []
+    },
+    "other": {
+      "generations": []
+    }
+  },
+  "komatsu": {
+    "kp": {
+      "generations": []
+    },
+    "ep": {
+      "generations": []
+    },
+    "ge": {
+      "generations": []
+    },
+    "bd": {
+      "generations": []
+    }
+  },
+  "man": {
+    "tgx": {
+      "generations": []
+    },
+    "tgs": {
+      "generations": []
+    },
+    "tga": {
+      "generations": []
+    },
+    "tgm": {
+      "generations": []
+    },
+    "tgl": {
+      "generations": []
+    }
+  },
+  "mercedes_benz": {
+    "actros": {
+      "generations": []
+    },
+    "axor": {
+      "generations": []
+    },
+    "atego": {
+      "generations": []
+    }
+  },
+  "renault_cvo": {
+    "?utm_term=Magnum": {
+      "generations": []
+    },
+    "?utm_term=Premium": {
+      "generations": []
+    },
+    "?utm_term=Kerax": {
+      "generations": []
+    }
+  },
+  "scania": {
+    "r_series": {
+      "generations": []
+    },
+    "g_series": {
+      "generations": []
+    },
+    "p_series": {
+      "generations": []
+    }
+  },
+  "volvo-cvo": {
+    "fh16": {
+      "generations": []
+    },
+    "fh": {
+      "generations": []
+    },
+    "fm": {
+      "generations": []
+    },
+    "fmx": {
+      "generations": []
+    },
+    "fe": {
+      "generations": []
+    },
+    "fl": {
+      "generations": []
+    },
+    "ge": {
+      "generations": []
+    },
+    "ke": {
+      "generations": []
+    },
+    "fp": {
+      "generations": []
+    },
+    "ep": {
+      "generations": []
+    }
+  }
+}
