@@ -17,7 +17,9 @@ async function resolveUrl(car, tree, openai) {
     return null;
   }
 
-  const generations = Object.keys(tree[brand][model]);
+  const generations = tree[brand][model].generations || [];
+
+  if (!generations.length) return null;
 
   const prompt = `
 У меня есть машина:
@@ -27,11 +29,12 @@ model: ${car.model}
 generation: ${car.generation}
 year: ${car.year}
 
-Вот список вариантов:
-${generations.join(", ")}
+Вот список поколений (с индексами):
 
-Выбери лучший вариант ИЗ СПИСКА.
-Ответ только строкой.
+${generations.map((g, i) => `${i}: ${g}`).join("\n")}
+
+Верни ТОЛЬКО индекс (число), который лучше всего подходит.
+Без текста, только число.
 `;
 
   const response = await openai.responses.create({
@@ -39,39 +42,16 @@ ${generations.join(", ")}
     input: prompt
   });
 
-  let gen = response.output_text.trim();
+  let index = parseInt(response.output_text.trim());
 
-  // 🔥 нормализация
-  gen = gen.replace(/\s+/g, "").toLowerCase();
-
-  const candidates = [
-    gen,
-    ...generations
-  ];
-
-  // 🔥 пробуем все варианты
-  for (let g of candidates) {
-    const url = `https://podbormasla.ru/${brand}/${model}/${g}/`;
-
-    try {
-      const res = await axios.get(url, {
-        headers: { "User-Agent": "Mozilla/5.0" },
-        timeout: 3000
-      });
-
-      if (res.status === 200) {
-        console.log("URL OK:", url);
-        return url;
-      }
-
-    } catch (e) {
-      // просто пробуем дальше
-    }
+  if (isNaN(index) || index < 0 || index >= generations.length) {
+    console.log("LLM bad index, fallback to 0");
+    index = 0;
   }
 
-  console.log("ALL URL FAILED");
+  const gen = generations[index];
 
-  return null;
+  return `https://podbormasla.ru/${brand}/${model}/${gen}/`;
 }
 
 // 👉 статика (ОБЯЗАТЕЛЬНО)
