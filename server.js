@@ -374,6 +374,29 @@ app.get("/test-final", async (req, res) => {
   res.json(results);
 });
 
+app.get("/oil/:vin", async (req, res) => {
+  try {
+    const carRes = await axios.get(
+      "https://gniddd.onrender.com/car-info/" + req.params.vin
+    );
+
+    const car = carRes.data;
+
+    // ⚠️ временно вручную (потом автоматизируем)
+    const url = "https://podbormasla.ru/skoda/octavia/octavia_3/";
+
+    const blocks = await parseEngineBlocks(url);
+    const engine = findEngineBlock(blocks, car);
+
+    res.json({
+      car,
+      oil: engine
+    });
+
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 // 📊 данные
 app.get("/data/:id", (req, res) => {
   const session = sessions[req.params.id];
