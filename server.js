@@ -318,53 +318,60 @@ app.post("/manual/:id", (req, res) => {
 });
 
 app.get("/test-final", async (req, res) => {
-  try {
-    const tests = [
-      {
-        name: "Skoda Octavia",
-        url: "https://podbormasla.ru/skoda/octavia/octavia_3/",
-        engine: "CWVA"
-      },
-      {
-        name: "Kia Rio",
-        url: "https://podbormasla.ru/kia/rio/gen3/",
-        engine: "G4FA"
-      },
-      {
-        name: "VW Polo",
-        url: "https://podbormasla.ru/volkswagen/polo/polo_5/",
-        engine: "CFNA"
-      },
-      {
-        name: "Renault Sandero",
-        url: "https://podbormasla.ru/renault/sandero/sandero_2/",
-        engine: "D4F"
-      }
-    ];
+  const tests = [
+    {
+      name: "Skoda Octavia",
+      url: "https://podbormasla.ru/skoda/octavia/octavia_3/",
+      engine: "CWVA"
+    },
+    {
+      name: "Kia Rio",
+      url: "https://podbormasla.ru/kia/rio/gen3/",
+      engine: "G4FA"
+    },
+    {
+      name: "VW Polo",
+      url: "https://podbormasla.ru/volkswagen/polo/polo_5/",
+      engine: "CFNA"
+    },
+    {
+      name: "Renault Sandero",
+      url: "https://podbormasla.ru/renault/sandero/sandero_2/",
+      engine: "D4F"
+    }
+  ];
 
-    const results = [];
+  const results = [];
 
-    for (let test of tests) {
+  for (let test of tests) {
+    try {
+      console.log("FETCH:", test.url);
+
       const blocks = await parseEngineBlocks(test.url);
 
       const found = blocks.find(b =>
-        b.codes.includes(test.engine)
+        b.codes.includes(test.engine.toUpperCase())
       );
 
       results.push({
         name: test.name,
+        url: test.url,
         engine: test.engine,
+        blocksCount: blocks.length,
         found: !!found,
         result: found || null
       });
+
+    } catch (e) {
+      results.push({
+        name: test.name,
+        url: test.url,
+        error: e.message
+      });
     }
-
-    res.json(results);
-
-  } catch (e) {
-    console.log("FETCH:", test.url);
-    res.status(500).json({ error: e.message });
   }
+
+  res.json(results);
 });
 
 // 📊 данные
