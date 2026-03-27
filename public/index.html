@@ -25,7 +25,7 @@
 <div id="liquids"></div>
 
 <script>
-
+let currentVin = null;
 let sessionId = null;
 let loading = false;
 
@@ -107,10 +107,12 @@ async function poll() {
     if (!loading) {
       document.getElementById("vin").innerText = data.vin || "—";
 
-      if (data.vin) {
-        loadCarInfo(data.vin);
-        loadLiquids(data.vin);
-      }
+     if (data.vin && data.vin !== currentVin) {
+  currentVin = data.vin;
+
+  loadCarInfo(currentVin);
+  loadLiquids(currentVin);
+}
     }
 
   } catch (e) {
