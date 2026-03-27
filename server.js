@@ -9,6 +9,45 @@ const { parseEngineBlocks, findEngineBlock } = require("./utils/parseOil");
 const app = express();
 app.use(express.json());
 
+async function resolveUrl(car, tree, openai) {
+  const brand = car.brand.toLowerCase();
+  const model = car.model.toLowerCase();
+
+  if (!tree[brand] || !tree[brand][model]) {
+    return null;
+  }
+
+  const generations = Object.keys(tree[brand][model]);
+
+  const prompt = `
+У меня есть машина:
+
+brand: ${car.brand}
+model: ${car.model}
+generation: ${car.generation}
+year: ${car.year}
+
+Вот список доступных поколений:
+${generations.join(", ")}
+
+Выбери ОДИН наиболее подходящий вариант.
+Ответ строго строкой из списка, без объяснений.
+`;
+
+  const response = await openai.responses.create({
+    model: "gpt-5.4-mini",
+    input: prompt
+  });
+
+  const gen = response.output_text.trim();
+
+  if (!generations.includes(gen)) {
+    return null;
+  }
+
+  return `https://podbormasla.ru/${brand}/${model}/${gen}/`;
+}
+
 // 👉 статика (ОБЯЗАТЕЛЬНО)
 app.use(express.static("public"));
 
@@ -382,14 +421,20 @@ app.get("/oil/:vin", async (req, res) => {
 
     const car = carRes.data;
 
-    // ⚠️ временно вручную (потом автоматизируем)
-   const url = "https://podbormasla.ru/kia/rio/gen3/";
+    const tree = require("./tree.json");
+
+    const url = await resolveUrl(car, tree, openai);
+
+    if (!url) {
+      return res.json({ error: "generation not found", car });
+    }
 
     const blocks = await parseEngineBlocks(url);
     const engine = findEngineBlock(blocks, car);
 
     res.json({
       car,
+      url,
       oil: engine
     });
 
