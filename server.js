@@ -16,6 +16,7 @@ function normalizeCar(data) {
   return {
     brand: data.brand,
     model: data.model,
+    generation: data.generation,
     year: data.year_manufactured,
 
     engine: {
