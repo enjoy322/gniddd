@@ -6,7 +6,7 @@ const fs = require("fs");
 const app = express();
 app.use(express.json());
 
-// 👉 ВАЖНО: это должно быть и больше ничего для фронта
+// 👉 статика (ОБЯЗАТЕЛЬНО)
 app.use(express.static("public"));
 
 const upload = multer({ dest: "uploads/" });
@@ -15,17 +15,17 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-// память
+// память (MVP)
 const sessions = {};
 
-// создать сессию
+// 🆕 создать сессию
 app.get("/new-session", (req, res) => {
   const id = Math.random().toString(36).substring(2, 8).toUpperCase();
   sessions[id] = { vin: null, history: [] };
   res.json({ session_id: id });
 });
 
-// сохранить VIN
+// 💾 сохранить VIN
 function saveVIN(session, vin) {
   session.vin = vin;
   if (!session.history.includes(vin)) {
@@ -33,7 +33,7 @@ function saveVIN(session, vin) {
   }
 }
 
-// очистка VIN
+// 🧹 очистка
 function normalizeVIN(vin) {
   return vin
     ?.toUpperCase()
@@ -41,7 +41,7 @@ function normalizeVIN(vin) {
     .replace(/[IOQ]/g, "");
 }
 
-// GPT (1 попытка)
+// 🤖 GPT (1 попытка)
 async function extractVINonce(filePath) {
   const imageBuffer = fs.readFileSync(filePath);
   const base64 = imageBuffer.toString("base64");
@@ -66,7 +66,7 @@ async function extractVINonce(filePath) {
   return normalizeVIN(response.output_text);
 }
 
-// 2 попытки
+// 🔁 2 попытки
 async function extractVIN(filePath) {
   for (let i = 0; i < 2; i++) {
     console.log("TRY:", i + 1);
@@ -82,7 +82,7 @@ async function extractVIN(filePath) {
   return null;
 }
 
-// загрузка фото
+// 📤 загрузка фото
 app.post("/upload/:id", upload.single("image"), async (req, res) => {
   const session = sessions[req.params.id];
   if (!session) return res.status(404).end();
@@ -106,7 +106,7 @@ app.post("/upload/:id", upload.single("image"), async (req, res) => {
   }
 });
 
-// ручной ввод
+// ⌨️ ручной ввод
 app.post("/manual/:id", (req, res) => {
   const session = sessions[req.params.id];
   if (!session) return res.status(404).end();
@@ -122,7 +122,7 @@ app.post("/manual/:id", (req, res) => {
   res.json({ vin });
 });
 
-// данные
+// 📊 данные
 app.get("/data/:id", (req, res) => {
   const session = sessions[req.params.id];
   if (!session) return res.status(404).end();
@@ -130,7 +130,14 @@ app.get("/data/:id", (req, res) => {
   res.json(session);
 });
 
-// запуск
+
+// 🔥 ВОТ ЭТО ГЛАВНОЕ (чтобы /ABC123 работало)
+app.get("/:id", (req, res) => {
+  res.sendFile(__dirname + "/public/index.html");
+});
+
+
+// 🚀 запуск
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
