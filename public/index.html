@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+
+<h2>Session: <span id="session"></span></h2>
+
+<input id="vinInput" placeholder="Введи VIN">
+<button onclick="sendManual()">OK</button>
+
+<br><br>
+
+<input type="file" id="fileInput" accept="image/*" capture="environment">
+<button onclick="upload()">Загрузить фото</button>
+
+<h2>VIN: <span id="vin">—</span></h2>
+
+<h3>История:</h3>
+<ul id="history"></ul>
+
+<script>
+let sessionId = null;
+
+// 🔹 ИНИЦИАЛИЗАЦИЯ
+async function init() {
+  const path = location.pathname.slice(1);
+
+  if (!path) {
+    const res = await fetch("/new-session");
+    const data = await res.json();
+
+    window.location.href = "/" + data.session_id;
+    return;
+  }
+
+  sessionId = path;
+  document.getElementById("session").innerText = sessionId;
+}
+
+init();
+
+
+// 🔹 РУЧНОЙ ВВОД
+async function sendManual() {
+  const vin = document.getElementById("vinInput").value;
+
+  const res = await fetch("/manual/" + sessionId, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ vin })
+  });
+
+  console.log("manual:", await res.json());
+}
+
+
+// 🔹 ЗАГРУЗКА ФОТО
+async function upload() {
+  const file = document.getElementById("fileInput").files[0];
+
+  if (!file) {
+    alert("выбери файл");
+    return;
+  }
+
+  document.getElementById("vin").innerText = "Обработка...";
+
+  const fd = new FormData();
+  fd.append("image", file);
+
+  try {
+    const res = await fetch("/upload/" + sessionId, {
+      method: "POST",
+      body: fd
+    });
+
+    const data = await res.json();
+    console.log("upload result:", data);
+
+  } catch (e) {
+    console.error("upload error:", e);
+  }
+}
+
+
+// 🔹 ОБНОВЛЕНИЕ
+async function poll() {
+  if (!sessionId) return;
+
+  try {
+    const res = await fetch("/data/" + sessionId);
+    if (!res.ok) return;
+
+    const data = await res.json();
+
+    document.getElementById("vin").innerText = data.vin || "—";
+
+    const ul = document.getElementById("history");
+    ul.innerHTML = "";
+
+    data.history.forEach(v => {
+      const li = document.createElement("li");
+      li.innerText = v;
+      ul.appendChild(li);
+    });
+
+  } catch (e) {
+    console.error("poll error:", e);
+  }
+}
+
+setInterval(poll, 2000);
+</script>
+
+</body>
+</html>
