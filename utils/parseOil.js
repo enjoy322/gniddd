@@ -101,6 +101,9 @@ function parseOilInfo(right) {
 // 🚀 MAIN PARSER
 // --------------------
 async function parseEngineBlocks(url) {
+    console.log("HTML LENGTH:", data.length);
+console.log("HAS TABLE:", $("table").length);
+console.log("HAS FLEX ROW:", $("tr.flexbe-table__row").length);
   const { data } = await axios.get(url, {
   headers: {
     "User-Agent": "Mozilla/5.0"
