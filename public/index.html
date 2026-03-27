@@ -1,65 +1,672 @@
-async function loadLiquids(vin) {
-  const localVin = vin;
-
-  try {
-    const res = await fetch(`/oil/${vin}`);
-    const data = await res.json();
-
-    if (localVin !== currentVin) return;
-
-    const oil = data.oil;
-    const sourceUrl = data?.url || null;
-
-    if (!oil) {
-      document.getElementById("liquids").innerHTML = "<p>Нет данных</p>";
-      return;
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Масло по VIN</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Onest:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0f0f0f;
+      --surface: #161616;
+      --surface2: #1e1e1e;
+      --border: #2a2a2a;
+      --accent: #e8c840;
+      --accent2: #d4a800;
+      --text: #f0ede6;
+      --muted: #6b6760;
+      --soft: #9b9590;
+      --danger: #e85c40;
+      --radius: 12px;
     }
 
-    const volume = oil.volume;
-    const best = oil.oil?.best || [];
-    const alt = oil.oil?.alternative || [];
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    function renderList(arr) {
-      return arr.map(item => {
-        const specs = item.specs || [];
-        const viscosity = item.viscosity || [];
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Onest', sans-serif;
+      font-weight: 400;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
 
-        return `
-          <div class="section">
-            <div><b>Допуски:</b></div>
-            <div>
-              ${specs.map(s => `<span class="badge">${s}</span>`).join("") || "—"}
+    /* Grain overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    /* ── HEADER ── */
+    header {
+      padding: 28px 40px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 32px;
+      letter-spacing: 3px;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .logo span {
+      color: var(--soft);
+      font-size: 18px;
+      letter-spacing: 1px;
+    }
+
+    /* ── INPUT ZONE ── */
+    .input-zone {
+      padding: 28px 40px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .input-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .vin-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      flex: 1;
+      min-width: 220px;
+      max-width: 440px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .vin-input-wrap:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(232, 200, 64, 0.12);
+    }
+
+    #vinInput {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: 'Onest', monospace;
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 2px;
+      padding: 12px 16px;
+      flex: 1;
+      text-transform: uppercase;
+    }
+
+    #vinInput::placeholder {
+      color: var(--muted);
+      letter-spacing: 1px;
+      font-size: 13px;
+      text-transform: none;
+    }
+
+    .btn-ok {
+      background: var(--accent);
+      color: #0f0f0f;
+      border: none;
+      padding: 12px 18px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 18px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-ok:hover { background: var(--accent2); }
+    .btn-ok:active { background: #b89000; }
+
+    .separator {
+      width: 1px;
+      height: 32px;
+      background: var(--border);
+    }
+
+    .btn-upload {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--soft);
+      font-family: 'Onest', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 11px 18px;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-upload:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    .btn-upload svg {
+      flex-shrink: 0;
+    }
+
+    #photoInput { display: none; }
+
+    .btn-send {
+      background: transparent;
+      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      color: var(--accent);
+      font-family: 'Onest', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 11px 24px;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      transition: background 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-send:hover {
+      background: var(--accent);
+      color: #0f0f0f;
+    }
+
+    /* ── MAIN LAYOUT ── */
+    .main {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      min-height: calc(100vh - 160px);
+    }
+
+    .panel {
+      padding: 36px 40px;
+      border-right: 1px solid var(--border);
+    }
+
+    .panel:last-child {
+      border-right: none;
+    }
+
+    .panel-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 13px;
+      letter-spacing: 3px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── CAR DATA ── */
+    .car-empty, .oil-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
+      gap: 12px;
+    }
+
+    .empty-icon {
+      font-size: 48px;
+      opacity: 0.15;
+    }
+
+    .empty-text {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .car-fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+    }
+
+    .field {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .field:nth-last-child(-n+2) {
+      border-bottom: none;
+    }
+
+    .field-key {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .field-val {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1.3;
+    }
+
+    .vin-big {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      letter-spacing: 4px;
+      color: var(--accent);
+      margin-bottom: 24px;
+      word-break: break-all;
+    }
+
+    /* ── OIL DATA ── */
+    .oil-section {
+      margin-bottom: 28px;
+    }
+
+    .oil-section-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 18px;
+      letter-spacing: 2px;
+      color: var(--soft);
+      margin-bottom: 14px;
+    }
+
+    .volume-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(232, 200, 64, 0.12);
+      border: 1px solid rgba(232, 200, 64, 0.3);
+      border-radius: 100px;
+      padding: 4px 14px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--accent);
+      margin-bottom: 24px;
+    }
+
+    .oil-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 10px;
+    }
+
+    .oil-card-label {
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .badges-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .badge {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--soft);
+      letter-spacing: 0.5px;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .badge.accent {
+      border-color: rgba(232,200,64,0.4);
+      color: var(--accent);
+      background: rgba(232,200,64,0.06);
+    }
+
+    .source-row {
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .source-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .source-link:hover {
+      color: var(--accent);
+    }
+
+    .source-link svg {
+      flex-shrink: 0;
+    }
+
+    /* ── LOADING ── */
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
+      gap: 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 720px) {
+      header { padding: 20px 20px 16px; }
+      .input-zone { padding: 16px 20px; }
+      .main { grid-template-columns: 1fr; }
+      .panel { padding: 24px 20px; border-right: none; border-bottom: 1px solid var(--border); }
+      .car-fields { grid-template-columns: 1fr; }
+      .field:nth-last-child(-n+2) { border-bottom: 1px solid var(--border); }
+      .field:last-child { border-bottom: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <div class="logo">VINOIL <span>/ поиск масла</span></div>
+    </div>
+  </header>
+
+  <div class="input-zone">
+    <span class="input-label">VIN</span>
+
+    <div class="vin-input-wrap">
+      <input id="vinInput" type="text" maxlength="17" placeholder="Введите VIN-номер" autocomplete="off" autocorrect="off" spellcheck="false" />
+      <button class="btn-ok" id="btnOk" title="Найти">ОК</button>
+    </div>
+
+    <div class="separator"></div>
+
+    <label class="btn-upload" for="photoInput">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+        <circle cx="12" cy="13" r="4"/>
+      </svg>
+      Загрузить фото
+    </label>
+    <input id="photoInput" type="file" accept="image/*" capture="environment" />
+
+    <button class="btn-send" id="btnSend">Отправить</button>
+  </div>
+
+  <div class="main">
+    <div class="panel" id="carPanel">
+      <div class="panel-title">Автомобиль</div>
+      <div class="car-empty">
+        <div class="empty-icon">🚗</div>
+        <div class="empty-text">Введите VIN для поиска</div>
+      </div>
+    </div>
+
+    <div class="panel" id="oilPanel">
+      <div class="panel-title">Масло и жидкости</div>
+      <div class="oil-empty" id="liquids">
+        <div class="empty-icon">🛢️</div>
+        <div class="empty-text">Данные появятся после поиска</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentVin = null;
+
+    const vinInput = document.getElementById('vinInput');
+    const btnOk = document.getElementById('btnOk');
+    const btnSend = document.getElementById('btnSend');
+    const photoInput = document.getElementById('photoInput');
+
+    // Enter → OK
+    vinInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') handleSearch();
+    });
+    btnOk.addEventListener('click', handleSearch);
+
+    // Отправить
+    btnSend.addEventListener('click', handleSend);
+
+    // Фото — уже работает через <label for>, поддерживает и камеру и галерею
+    // (убираем capture чтобы на iOS давал выбор)
+    photoInput.removeAttribute('capture');
+    photoInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (file) handlePhotoUpload(file);
+    });
+
+    function handleSearch() {
+      const vin = vinInput.value.trim().toUpperCase();
+      if (!vin) return;
+      currentVin = vin;
+      renderCarLoading(vin);
+      loadLiquids(vin);
+    }
+
+    function handleSend() {
+      const vin = vinInput.value.trim().toUpperCase();
+      if (!vin) {
+        vinInput.focus();
+        return;
+      }
+      handleSearch();
+    }
+
+    function handlePhotoUpload(file) {
+      // Заглушка — здесь можно добавить OCR или отправку на сервер
+      console.log('Загружен файл:', file.name);
+    }
+
+    function renderCarLoading(vin) {
+      document.getElementById('carPanel').innerHTML = `
+        <div class="panel-title">Автомобиль</div>
+        <div class="vin-big">${vin}</div>
+        <div class="loading"><div class="spinner"></div><span>Загрузка данных…</span></div>
+      `;
+    }
+
+    function renderCarData(vin, data) {
+      const fields = [
+        { key: 'Марка', val: data.make },
+        { key: 'Модель', val: data.model },
+        { key: 'Год', val: data.year },
+        { key: 'Двигатель', val: data.engine },
+        { key: 'Кузов', val: data.body },
+        { key: 'Привод', val: data.drive },
+        { key: 'Трансмиссия', val: data.transmission },
+        { key: 'Страна', val: data.country },
+      ].filter(f => f.val);
+
+      const fieldsHtml = fields.map(f => `
+        <div class="field">
+          <div class="field-key">${f.key}</div>
+          <div class="field-val">${f.val}</div>
+        </div>
+      `).join('');
+
+      document.getElementById('carPanel').innerHTML = `
+        <div class="panel-title">Автомобиль</div>
+        <div class="vin-big">${vin}</div>
+        ${fields.length
+          ? `<div class="car-fields">${fieldsHtml}</div>`
+          : '<p style="color:var(--muted);font-size:14px;">Данные об автомобиле не найдены</p>'
+        }
+      `;
+    }
+
+    async function loadLiquids(vin) {
+      const localVin = vin;
+
+      document.getElementById('liquids').innerHTML = `
+        <div class="loading"><div class="spinner"></div><span>Загрузка масла…</span></div>
+      `;
+
+      try {
+        // Параллельно грузим данные об авто (если есть эндпоинт)
+        fetchCarData(vin);
+
+        const res = await fetch(`/oil/${vin}`);
+        const data = await res.json();
+
+        if (localVin !== currentVin) return;
+
+        const oil = data.oil;
+        const sourceUrl = data?.url || null;
+
+        if (!oil) {
+          document.getElementById('liquids').innerHTML = `
+            <div class="oil-empty">
+              <div class="empty-icon">🛢️</div>
+              <div class="empty-text">Нет данных по маслу</div>
             </div>
+          `;
+          return;
+        }
 
-            <div style="margin-top:5px;"><b>Вязкость:</b></div>
-            <div>
-              ${viscosity.map(v => `<span class="badge">${v}</span>`).join("") || "—"}
+        const volume = oil.volume;
+        const best = oil.oil?.best || [];
+        const alt = oil.oil?.alternative || [];
+
+        function renderCards(arr, isAccent) {
+          if (!arr.length) return '<p style="color:var(--muted);font-size:13px;">—</p>';
+          return arr.map(item => {
+            const specs = item.specs || [];
+            const viscosity = item.viscosity || [];
+            return `
+              <div class="oil-card">
+                ${specs.length ? `
+                  <div class="oil-card-label">Допуски</div>
+                  <div class="badges-row" style="margin-bottom:10px;">
+                    ${specs.map(s => `<span class="badge ${isAccent ? 'accent' : ''}">${s}</span>`).join('')}
+                  </div>
+                ` : ''}
+                ${viscosity.length ? `
+                  <div class="oil-card-label">Вязкость</div>
+                  <div class="badges-row">
+                    ${viscosity.map(v => `<span class="badge">${v}</span>`).join('')}
+                  </div>
+                ` : ''}
+              </div>
+            `;
+          }).join('');
+        }
+
+        document.getElementById('liquids').innerHTML = `
+          ${volume ? `<div class="volume-chip">🛢 Объём: ${volume} л</div>` : ''}
+
+          <div class="oil-section">
+            <div class="oil-section-title">Лучший выбор</div>
+            ${renderCards(best, true)}
+          </div>
+
+          <div class="oil-section">
+            <div class="oil-section-title">Альтернатива</div>
+            ${renderCards(alt, false)}
+          </div>
+
+          ${sourceUrl ? `
+            <div class="source-row">
+              <a href="${sourceUrl}" target="_blank" rel="noopener noreferrer" class="source-link">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                  <polyline points="15 3 21 3 21 9"/>
+                  <line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+                Источник данных
+              </a>
             </div>
+          ` : ''}
+        `;
+
+      } catch (e) {
+        if (localVin !== currentVin) return;
+        console.error('oil error', e);
+        document.getElementById('liquids').innerHTML = `
+          <div class="oil-empty">
+            <div class="empty-icon" style="font-size:36px">⚠️</div>
+            <div class="empty-text">Ошибка загрузки данных</div>
           </div>
         `;
-      }).join("");
+      }
     }
 
-    document.getElementById("liquids").innerHTML = `
-      <h3>Масло двигателя</h3>
-      <p class="volume">Объем: ${volume ? volume + " л" : "—"}</p>
+    async function fetchCarData(vin) {
+      // Если есть эндпоинт /car/:vin — раскомментируйте
+      // try {
+      //   const res = await fetch(`/car/${vin}`);
+      //   const data = await res.json();
+      //   if (vin !== currentVin) return;
+      //   renderCarData(vin, data);
+      // } catch(e) {}
 
-      <h4>Лучший выбор</h4>
-      ${renderList(best) || "<p>—</p>"}
-
-      <h4>Альтернатива</h4>
-      ${renderList(alt) || "<p>—</p>"}
-
-      ${sourceUrl ? `
-        <div style="margin-top:15px; text-align:right;">
-          <a href="${sourceUrl}" target="_blank" style="font-size:13px; color:#666;">
-            источник
-          </a>
-        </div>
-      ` : ""}
-    `;
-
-  } catch (e) {
-    console.error("oil error", e);
-  }
-}
+      // Пока показываем только VIN
+      document.getElementById('carPanel').innerHTML = `
+        <div class="panel-title">Автомобиль</div>
+        <div class="vin-big">${vin}</div>
+        <p style="color:var(--muted);font-size:13px;line-height:1.6;">
+          Данные о марке и модели будут здесь,<br>если подключить эндпоинт <code style="color:var(--soft)">/car/:vin</code>
+        </p>
+      `;
+    }
+  </script>
+</body>
+</html>
