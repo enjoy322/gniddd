@@ -4,7 +4,7 @@ const OpenAI = require("openai");
 const fs = require("fs");
 const axios = require("axios");
 const https = require("https");
-
+const cheerio = require("cheerio");
 const app = express();
 app.use(express.json());
 
