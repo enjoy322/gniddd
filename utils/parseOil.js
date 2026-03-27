@@ -2,41 +2,43 @@ const axios = require("axios");
 const cheerio = require("cheerio");
 
 async function parseEngineBlocks(url) {
+  const axios = require("axios");
+  const cheerio = require("cheerio");
+
   const { data } = await axios.get(url);
   const $ = cheerio.load(data);
 
   const blocks = [];
 
   $("table tr").each((i, el) => {
-    const rowText = $(el).text();
-
-    // ✅ только двигатель
-    if (!rowText.includes("МАСЛО в ДВИГАТЕЛЬ")) return;
-
     const tds = $(el).find("td");
 
-if (tds.length < 3) return;
+    // нужно минимум 3 колонки
+    if (tds.length < 3) return;
 
-const left = $(tds[0]).text();   // двигатель
-const middle = $(tds[1]).text(); // объем
-const right = $(tds[2]).text();  // масло
+    const left = $(tds[0]).text().trim();   // двигатель
+    const middle = $(tds[1]).text().trim(); // объем
+    const right = $(tds[2]).text().trim();  // масло
 
-    // ✅ коды двигателей (4 буквы)
-    let codes = [...blockText.matchAll(/\b[A-Z]{4}\b/g)]
+    // ✅ только двигатель
+    if (!left.includes("МАСЛО в ДВИГАТЕЛЬ")) return;
+
+    // ✅ коды двигателей
+    let codes = [...left.matchAll(/\b[A-Z]{4}\b/g)]
       .map(m => m[0])
       .filter(c => !["SAE", "VAG"].includes(c));
 
     if (codes.length === 0) return;
 
     // ✅ объем
-    const volumeMatch = blockText.match(/(\d\.\d)\s*л/);
+    const volumeMatch = left.match(/(\d\.\d)\s*л/);
 
-    // ✅ вязкость
-    const viscosity = [...blockText.matchAll(/\d{1,2}W-\d{2}/g)]
+    // ✅ вязкость (ИЩЕМ В ПРАВОЙ КОЛОНКЕ!)
+    const viscosity = [...right.matchAll(/\d{1,2}W-\d{2}/g)]
       .map(m => m[0]);
 
     // ✅ допуски
-    const specs = [...blockText.matchAll(/[A-Z]{2,}\s?\d{2,3}\.\d{2}/g)]
+    const specs = [...right.matchAll(/[A-Z]{2,}\s?\d{2,3}\.\d{2}/g)]
       .map(m => m[0]);
 
     blocks.push({
@@ -44,7 +46,7 @@ const right = $(tds[2]).text();  // масло
       volume: volumeMatch ? volumeMatch[1] : null,
       viscosity: [...new Set(viscosity)],
       specs: [...new Set(specs)],
-      raw: blockText
+      raw: { left, middle, right }
     });
   });
 
