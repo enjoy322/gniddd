@@ -60,34 +60,47 @@ function parseOilInfo(right) {
     raw: right
   };
 
-  function parseBlock(text) {
-    const pairs = [];
+ function parseBlock(text) {
+  const pairs = [];
 
-    // ищем связки "спеки → для → вязкости"
-    const matches = [...text.matchAll(/(.+?)для\s*SAE\s*([\dW\-,\s]+)/gi)];
+  // --------------------
+  // 1. кейс "для SAE"
+  // --------------------
+  const matches = [...text.matchAll(/(.+?)для\s*SAE\s*([\dW\-,\s]+)/gi)];
 
+  if (matches.length) {
     for (let m of matches) {
       const left = m[1];
       const right = m[2];
 
-      const specs = [
-        ...left.matchAll(/(VW\s?\d{3}\.\d{2}|ACEA\s?[A-Z]\d|API\s?[A-Z]{2}|ILSAC\s?GF-\d)/g)
-      ].map(x => x[0]);
-
-      const viscosity = [
-        ...right.matchAll(/\d{1,2}W-\d{2}/g)
-      ].map(x => x[0]);
+      const specs = extractSpecs(left);
+      const viscosity = extractViscosity(right);
 
       if (specs.length || viscosity.length) {
-        pairs.push({
-          specs,
-          viscosity
-        });
+        pairs.push({ specs, viscosity });
       }
     }
 
     return pairs;
   }
+
+  // --------------------
+  // 2. fallback (ВСЁ В ОДНОЙ СТРОКЕ — Renault и др.)
+  // --------------------
+  const specs = extractSpecs(text);
+  const viscosity = extractViscosity(text);
+
+  if (specs.length || viscosity.length) {
+    pairs.push({
+      specs,
+      viscosity
+    });
+
+    return pairs;
+  }
+
+  return pairs;
+}
 
   // лучший выбор
   const bestMatch = right.match(/Лучший выбор:(.*?)(Альтернатива:|$)/s);
