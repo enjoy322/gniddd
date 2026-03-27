@@ -3,6 +3,7 @@ const multer = require("multer");
 const OpenAI = require("openai");
 const fs = require("fs");
 const axios = require("axios");
+const https = require("https");
 
 const app = express();
 app.use(express.json());
@@ -107,19 +108,20 @@ app.post("/upload/:id", upload.single("image"), async (req, res) => {
   }
 });
 app.get("/test-sintec", async (req, res) => {
-  try {
-    const response = await axios.get("https://podbor.upec.pro/api/v1/public/find-car", {
-      params: {
-        vin: "Z94CB51AAGR059195",
-        token: "32e33ef47960cdf8b9503c2cd241d20e2893b17623b3c916e829620bcfdf177d",
-        transportType: "CAR",
-        source: "vin"
-      },
-      headers: {
-        "User-Agent": "Mozilla/5.0"
-      }
-    });
-
+  try {const response = await axios.get("https://podbor.upec.pro/api/v1/public/find-car", {
+  params: {
+    vin: "Z94CB51AAGR059195",
+    token: "32e33ef47960cdf8b9503c2cd241d20e2893b17623b3c916e829620bcfdf177d",
+    transportType: "CAR",
+    source: "vin"
+  },
+  headers: {
+    "User-Agent": "Mozilla/5.0"
+  },
+  httpsAgent: new https.Agent({
+    rejectUnauthorized: false
+  })
+});
     res.json(response.data);
   } catch (e) {
     res.status(500).json({ error: "fail", details: e.message });
