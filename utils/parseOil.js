@@ -9,15 +9,15 @@ function extractCodes(left) {
   const part = left.split("Модель:")[1];
   if (!part) return [];
 
-  return part
-    .split("\n")
-    .map(s => s.trim())
-    .filter(s => s.startsWith("-"))
-    .map(s => s.replace("-", "").trim())
-    .map(s => s.split(" ")[0])
-    .filter(Boolean);
-}
+  // берём только до "Тип топлива"
+  const clean = part.split("Тип топлива")[0];
 
+  // ищем коды строго: 3–5 заглавных букв
+  const matches = [...clean.matchAll(/\b[A-Z]{3,6}\b/g)]
+    .map(m => m[0]);
+
+  return [...new Set(matches)];
+}
 
 // --------------------
 // 🔧 VISCOSITY
