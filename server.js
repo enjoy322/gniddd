@@ -246,7 +246,18 @@ app.get("/car-info/:vin", async (req, res) => {
     res.status(500).json({ error: "fail", details: e.message });
   }
 });
+app.get("/test-engine", async (req, res) => {
+  try {
+    const url = "https://podbormasla.ru/skoda/octavia/octavia_3/";
 
+    const blocks = await parseEngineBlocks(url);
+
+    res.json(blocks.slice(0, 5)); // первые 5, чтобы не утонуть
+
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 app.get("/test-sintec", async (req, res) => {
   try {const response = await axios.get("https://podbor.upec.pro/api/v1/public/find-car", {
   params: {
