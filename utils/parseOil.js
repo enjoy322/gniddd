@@ -10,18 +10,18 @@ async function parseEngineBlocks(url) {
 
   const blocks = [];
 
-  $("table tr").each((i, el) => {
+  $("tr.flexbe-table__row").each((i, el) => {
+    const th = $(el).find("th").first(); // 👈 двигатель тут
     const tds = $(el).find("td");
 
-    // нужно минимум 3 колонки
-    if (tds.length < 3) return;
+    if (!th.length || tds.length < 2) return;
 
-    const left = $(tds[0]).text().trim();   // двигатель
-    const middle = $(tds[1]).text().trim(); // объем
-    const right = $(tds[2]).text().trim();  // масло
+    const left = th.text().trim();
+    const middle = $(tds[0]).text().trim(); // объем масла
+    const right = $(tds[1]).text().trim();  // допуски и вязкость
 
     // ✅ только двигатель
-    if (!left.includes("МАСЛО в ДВИГАТЕЛЬ")) return;
+    if (!left.includes("МАСЛО") || !left.includes("ДВИГАТЕЛЬ")) return;
 
     // ✅ коды двигателей
     let codes = [...left.matchAll(/\b[A-Z]{4}\b/g)]
@@ -30,10 +30,10 @@ async function parseEngineBlocks(url) {
 
     if (codes.length === 0) return;
 
-    // ✅ объем
+    // ✅ объем двигателя
     const volumeMatch = left.match(/(\d\.\d)\s*л/);
 
-    // ✅ вязкость (ИЩЕМ В ПРАВОЙ КОЛОНКЕ!)
+    // ✅ вязкость
     const viscosity = [...right.matchAll(/\d{1,2}W-\d{2}/g)]
       .map(m => m[0]);
 
@@ -50,7 +50,7 @@ async function parseEngineBlocks(url) {
     });
   });
 
-  // ✅ убираем дубли
+  // убираем дубли
   const unique = new Map();
 
   for (let b of blocks) {
@@ -60,7 +60,6 @@ async function parseEngineBlocks(url) {
 
   return Array.from(unique.values());
 }
-
 
 // 🔍 поиск нужного двигателя
 function findEngineBlock(blocks, car) {
