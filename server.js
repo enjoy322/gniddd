@@ -27,12 +27,11 @@ model: ${car.model}
 generation: ${car.generation}
 year: ${car.year}
 
-Вот список допустимых вариантов:
+Вот список вариантов:
 ${generations.join(", ")}
 
-Верни ТОЧНО ОДИН вариант ИЗ СПИСКА.
-Нельзя придумывать.
-Ответ — только строка из списка.
+Выбери лучший вариант ИЗ СПИСКА.
+Ответ только строкой.
 `;
 
   const response = await openai.responses.create({
@@ -42,20 +41,37 @@ ${generations.join(", ")}
 
   let gen = response.output_text.trim();
 
-  // 🔥 мягкое приведение
+  // 🔥 нормализация
   gen = gen.replace(/\s+/g, "").toLowerCase();
 
-  const found = generations.find(g =>
-    g.toLowerCase() === gen
-  );
+  const candidates = [
+    gen,
+    ...generations
+  ];
 
-  // fallback
-  if (!found) {
-    console.log("LLM mismatch:", gen);
-    return `https://podbormasla.ru/${brand}/${model}/${generations[0]}/`;
+  // 🔥 пробуем все варианты
+  for (let g of candidates) {
+    const url = `https://podbormasla.ru/${brand}/${model}/${g}/`;
+
+    try {
+      const res = await axios.get(url, {
+        headers: { "User-Agent": "Mozilla/5.0" },
+        timeout: 3000
+      });
+
+      if (res.status === 200) {
+        console.log("URL OK:", url);
+        return url;
+      }
+
+    } catch (e) {
+      // просто пробуем дальше
+    }
   }
 
-  return `https://podbormasla.ru/${brand}/${model}/${found}/`;
+  console.log("ALL URL FAILED");
+
+  return null;
 }
 
 // 👉 статика (ОБЯЗАТЕЛЬНО)
