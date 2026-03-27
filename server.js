@@ -11,6 +11,24 @@ app.use(express.json());
 // 👉 статика (ОБЯЗАТЕЛЬНО)
 app.use(express.static("public"));
 
+
+function normalizeCar(data) {
+  return {
+    brand: data.brand,
+    model: data.model,
+    year: data.year_manufactured,
+
+    engine: {
+      code: data.engine_code,
+      volume: parseFloat(data.engine_volume?.replace(",", ".")),
+      type: data.engine_type
+    },
+
+    transmission: data.transmission,
+    drive: data.drive,
+    power_hp: parseInt(data.power)
+  };
+}
 const upload = multer({ dest: "uploads/" });
 
 const openai = new OpenAI({
@@ -107,6 +125,32 @@ app.post("/upload/:id", upload.single("image"), async (req, res) => {
     res.status(500).json({ error: "failed" });
   }
 });
+app.get("/car-info/:vin", async (req, res) => {
+  try {
+    const response = await axios.get("https://podbor.upec.pro/api/v1/public/find-car", {
+      params: {
+        vin: req.params.vin,
+        token: "32e33ef47960cdf8b9503c2cd241d20e2893b17623b3c916e829620bcfdf177d",
+        transportType: "CAR",
+        source: "vin"
+      },
+      headers: {
+        "User-Agent": "Mozilla/5.0"
+      },
+      httpsAgent: new (require("https").Agent)({
+        rejectUnauthorized: false
+      })
+    });
+
+    const normalized = normalizeCar(response.data);
+
+    res.json(normalized);
+
+  } catch (e) {
+    res.status(500).json({ error: "fail", details: e.message });
+  }
+});
+
 app.get("/test-sintec", async (req, res) => {
   try {const response = await axios.get("https://podbor.upec.pro/api/v1/public/find-car", {
   params: {
