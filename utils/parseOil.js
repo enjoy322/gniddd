@@ -158,7 +158,6 @@ async function parseEngineBlocks(url) {
       middle = $(tds[0]).text().trim();
       right = $(tds[1]).text().trim();
     }
-
     // обычная таблица
     else {
       if (tds.length < 3) return;
@@ -173,12 +172,20 @@ async function parseEngineBlocks(url) {
     const codes = extractCodes(left);
     if (!codes.length) return;
 
-    const volumeMatch = left.match(/(\d\.\d)\s*л/);
+    // 🔥 ВОТ ГЛАВНЫЙ ФИКС
+    const volumeText = (middle + " " + right);
+
+    const volumeMatch = volumeText.match(/(\d+[.,]?\d*)\s*л/i);
+
+    const volume = volumeMatch
+      ? parseFloat(volumeMatch[1].replace(",", "."))
+      : null;
+
     const oil = parseOilInfo(right);
 
     blocks.push({
       codes,
-      volume: volumeMatch ? volumeMatch[1] : null,
+      volume,
       oil: {
         best: oil.best,
         alternative: oil.alternative

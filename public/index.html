@@ -45,7 +45,27 @@ async function init() {
   sessionId = path;
   document.getElementById("session").innerText = sessionId;
 }
+async function sendManual() {
+  const vin = document.getElementById("vinInput").value;
 
+  if (!vin) return;
+
+  try {
+    const res = await fetch("/manual/" + sessionId, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ vin })
+    });
+
+    const data = await res.json();
+    console.log("manual result:", data);
+
+  } catch (e) {
+    console.error(e);
+  }
+}
 // 📤 ЗАГРУЗКА ФОТО
 async function upload() {
   loading = true;
