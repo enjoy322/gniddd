@@ -219,8 +219,9 @@ app.post("/upload/:id", upload.single("image"), async (req, res) => {
     res.json({ vin });
 
   } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "failed" });
+  console.error("ERROR URL:", test.url);
+  console.error(e.message);
+}
   }
 });
 app.get("/car-info/:vin", async (req, res) => {
@@ -361,6 +362,7 @@ app.get("/test-final", async (req, res) => {
     res.json(results);
 
   } catch (e) {
+    console.log("FETCH:", test.url);
     res.status(500).json({ error: e.message });
   }
 });
