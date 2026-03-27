@@ -38,7 +38,34 @@ const openai = new OpenAI({
 
 // память (MVP)
 const sessions = {};
+app.get("/test-links", async (req, res) => {
+  try {
+    const axios = require("axios");
+    const cheerio = require("cheerio");
 
+    const { data } = await axios.get("https://podbormasla.ru/");
+
+    const $ = cheerio.load(data);
+
+    const links = [];
+
+    $("a").each((i, el) => {
+      const href = $(el).attr("href");
+      const text = $(el).text().trim();
+
+      if (href && text && href.startsWith("/")) {
+        links.push({
+          text,
+          href
+        });
+      }
+    });
+
+    res.json(links.slice(0, 50)); // чтобы не заспамить
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 // 🆕 создать сессию
 app.get("/new-session", (req, res) => {
   const id = Math.random().toString(36).substring(2, 8).toUpperCase();
