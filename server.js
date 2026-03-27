@@ -42,7 +42,7 @@ ${JSON.stringify(tree[car.brand.toLowerCase()] || {}, null, 2)}
     return null;
   }
 }
-async function parseEngineBlocks(url) {
+/*async function parseEngineBlocks(url) {
   const { data } = await axios.get(url);
   const $ = cheerio.load(data);
 
@@ -79,7 +79,7 @@ async function parseEngineBlocks(url) {
   });
 
   return blocks;
-}
+}*/
 
 function normalizeCar(data) {
   return {
