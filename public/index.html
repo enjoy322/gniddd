@@ -139,20 +139,45 @@ async function loadCarInfo(vin) {
 // 🛢 LIQUIDS
 async function loadLiquids(vin) {
   try {
-    const res = await fetch(`/liquids/${vin}`);
+    const res = await fetch(`/oil/${vin}`);
     const data = await res.json();
 
+    const oil = data.oil;
+
+    if (!oil) {
+      document.getElementById("liquids").innerHTML = "<p>Нет данных</p>";
+      return;
+    }
+
+    const volume = oil.volume;
+
+    const best = oil.oil?.best || [];
+    const alt = oil.oil?.alternative || [];
+
+    function renderList(arr) {
+      return arr.map(item => `
+        <div style="margin-bottom:10px;">
+          <div>Допуски: ${item.specs.join(", ") || "—"}</div>
+          <div>Вязкость: ${item.viscosity.join(", ") || "—"}</div>
+        </div>
+      `).join("");
+    }
+
     document.getElementById("liquids").innerHTML = `
-      <h3>Объемы</h3>
-      <p>Двигатель: ${data.engine_oil || "—"}</p>
-      <p>КПП: ${data.gearbox || "нет данных"}</p>
-      <p>Охлаждение: ${data.coolant || "—"}</p>
+      <h3>Масло двигателя</h3>
+      <p><b>Объем:</b> ${volume ? volume + " л" : "—"}</p>
+
+      <h4>Лучший выбор</h4>
+      ${renderList(best) || "<p>—</p>"}
+
+      <h4>Альтернатива</h4>
+      ${renderList(alt) || "<p>—</p>"}
     `;
+
   } catch (e) {
-    console.error("liquids error", e);
+    console.error("oil error", e);
   }
 }
-
 // 🔁 старт polling
 setInterval(poll, 2000);
 
