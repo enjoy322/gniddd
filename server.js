@@ -383,7 +383,7 @@ app.get("/oil/:vin", async (req, res) => {
     const car = carRes.data;
 
     // ⚠️ временно вручную (потом автоматизируем)
-    const url = "https://podbormasla.ru/skoda/octavia/octavia_3/";
+   const url = "https://podbormasla.ru/kia/rio/gen3/";
 
     const blocks = await parseEngineBlocks(url);
     const engine = findEngineBlock(blocks, car);
