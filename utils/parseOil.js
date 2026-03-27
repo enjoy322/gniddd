@@ -55,29 +55,55 @@ function extractSpecs(text) {
 // --------------------
 function parseOilInfo(right) {
   const result = {
-    best: { viscosity: [], specs: [] },
-    alternative: { viscosity: [], specs: [] },
+    best: [],
+    alternative: [],
     raw: right
   };
 
+  function parseBlock(text) {
+    const pairs = [];
+
+    // ищем связки "спеки → для → вязкости"
+    const matches = [...text.matchAll(/(.+?)для\s*SAE\s*([\dW\-,\s]+)/gi)];
+
+    for (let m of matches) {
+      const left = m[1];
+      const right = m[2];
+
+      const specs = [
+        ...left.matchAll(/(VW\s?\d{3}\.\d{2}|ACEA\s?[A-Z]\d|API\s?[A-Z]{2}|ILSAC\s?GF-\d)/g)
+      ].map(x => x[0]);
+
+      const viscosity = [
+        ...right.matchAll(/\d{1,2}W-\d{2}/g)
+      ].map(x => x[0]);
+
+      if (specs.length || viscosity.length) {
+        pairs.push({
+          specs,
+          viscosity
+        });
+      }
+    }
+
+    return pairs;
+  }
+
+  // лучший выбор
   const bestMatch = right.match(/Лучший выбор:(.*?)(Альтернатива:|$)/s);
   if (bestMatch) {
-    const text = bestMatch[1];
-    result.best.viscosity = [...new Set(extractViscosity(text))];
-    result.best.specs = [...new Set(extractSpecs(text))];
+    result.best = parseBlock(bestMatch[1]);
   }
 
+  // альтернатива
   const altMatch = right.match(/Альтернатива:(.*)/s);
   if (altMatch) {
-    const text = altMatch[1];
-    result.alternative.viscosity = [...new Set(extractViscosity(text))];
-    result.alternative.specs = [...new Set(extractSpecs(text))];
+    result.alternative = parseBlock(altMatch[1]);
   }
 
-  // fallback если нет структуры
-  if (!result.best.specs.length) {
-    result.best.specs = extractSpecs(right);
-    result.best.viscosity = extractViscosity(right);
+  // fallback если нет структуры (как у Kia)
+  if (result.best.length === 0 && result.alternative.length === 0) {
+    result.best = parseBlock(right);
   }
 
   return result;
