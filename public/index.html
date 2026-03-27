@@ -1,237 +1,14 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-body {
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-  margin: 20px;
-  background: #f3f4f6;
-  color: #111;
-}
-
-.top-bar {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
-}
-
-input {
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-}
-
-button {
-  padding: 10px 14px;
-  border: none;
-  border-radius: 8px;
-  background: #111;
-  color: white;
-  cursor: pointer;
-}
-
-button:hover {
-  opacity: 0.9;
-}
-
-.grid {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-.card {
-  background: white;
-  padding: 20px;
-  border-radius: 14px;
-  flex: 1;
-  min-width: 280px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-}
-
-.card h3 {
-  margin-top: 0;
-  margin-bottom: 10px;
-}
-
-.section {
-  margin-top: 15px;
-}
-
-.badge {
-  display: inline-block;
-  background: #eee;
-  padding: 5px 8px;
-  border-radius: 6px;
-  margin: 3px;
-  font-size: 13px;
-}
-
-.volume {
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 10px;
-}
-</style>
-</head>
-<body>
-<div id="app">
-
-  <div class="top-bar">
-    <h2>Session: <span id="session"></span></h2>
-
-    <input id="vinInput" placeholder="VIN">
-    <button onclick="sendManual()">OK</button>
-
-    <input type="file" id="fileInput" accept="image/*">
-    <button onclick="upload()">Фото</button>
-  </div>
-
-  <h2>VIN: <span id="vin">—</span></h2>
-
-  <div class="grid">
-    <div id="carInfo" class="card"></div>
-    <div id="liquids" class="card"></div>
-  </div>
-
-</div>
-
-
-
-<!-- история скрыта -->
-<div id="history" style="display:none"></div>
-
-
-
-<script>
-let currentVin = null;
-let sessionId = null;
-let loading = false;
-
-init();
-
-// 🆕 INIT
-async function init() {
-  const path = location.pathname.slice(1);
-
-  if (!path) {
-    const res = await fetch("/new-session");
-    const data = await res.json();
-    window.location.href = "/" + data.session_id;
-    return;
-  }
-
-  sessionId = path;
-  document.getElementById("session").innerText = sessionId;
-}
-async function sendManual() {
-  const vin = document.getElementById("vinInput").value;
-
-  if (!vin) return;
-
-  try {
-    const res = await fetch("/manual/" + sessionId, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ vin })
-    });
-
-    const data = await res.json();
-    console.log("manual result:", data);
-
-  } catch (e) {
-    console.error(e);
-  }
-}
-// 📤 ЗАГРУЗКА ФОТО
-async function upload() {
-  loading = true;
-  document.getElementById("vin").innerText = "Обработка...";
-
-  const file = document.getElementById("fileInput").files[0];
-
-  if (!file) {
-    alert("выбери файл");
-    loading = false;
-    return;
-  }
-
-  const fd = new FormData();
-  fd.append("image", file);
-
-  try {
-    await fetch("/upload/" + sessionId, {
-      method: "POST",
-      body: fd
-    });
-  } catch (e) {
-    console.error(e);
-  }
-
-  loading = false;
-}
-
-// 🔁 POLL
-async function poll() {
-  if (!sessionId) return;
-
-  try {
-    const res = await fetch("/data/" + sessionId);
-    if (!res.ok) return;
-
-    const data = await res.json();
-
-    if (!loading) {
-      document.getElementById("vin").innerText = data.vin || "—";
-
-     if (data.vin && data.vin !== currentVin) {
-  currentVin = data.vin;
-
-  loadCarInfo(currentVin);
-  loadLiquids(currentVin);
-}
-    }
-
-  } catch (e) {
-    console.error(e);
-  }
-}
-
-// 🚗 CAR INFO
-async function loadCarInfo(vin) {
-  try {
-    const res = await fetch(`/car-info/${vin}`);
-    const data = await res.json();
-document.getElementById("carInfo").innerHTML = `
-  <h3>${data.brand} ${data.model}</h3>
-  <p><b>Год:</b> ${data.year}</p>
-  <p><b>Двигатель:</b> ${data.engine.code} (${data.engine.volume}л)</p>
-  <p><b>Тип:</b> ${data.engine.type}</p>
-  <p><b>Мощность:</b> ${data.power_hp} л.с</p>
-  <p><b>КПП:</b> ${data.transmission || "—"}</p>
-  <p><b>Привод:</b> ${data.drive || "—"}</p>
-`;
-  } catch (e) {
-    console.error("car info error", e);
-  }
-}
-
-// 🛢 LIQUIDS
 async function loadLiquids(vin) {
   const localVin = vin;
-<p class="volume">Объем: ${volume ? volume + " л" : "—"}</p>
+
   try {
     const res = await fetch(`/oil/${vin}`);
     const data = await res.json();
 
-    // 🔥 если VIN уже сменился — игнорируем
     if (localVin !== currentVin) return;
 
     const oil = data.oil;
+    const sourceUrl = data?.url || null;
 
     if (!oil) {
       document.getElementById("liquids").innerHTML = "<p>Нет данных</p>";
@@ -242,46 +19,47 @@ async function loadLiquids(vin) {
     const best = oil.oil?.best || [];
     const alt = oil.oil?.alternative || [];
 
-   function renderList(arr) {
-  return arr.map(item => `
-    <div class="section">
-      <div><b>Допуски:</b></div>
-      <div>
-        ${item.specs.map(s => `<span class="badge">${s}</span>`).join("")}
-      </div>
+    function renderList(arr) {
+      return arr.map(item => {
+        const specs = item.specs || [];
+        const viscosity = item.viscosity || [];
 
-      <div style="margin-top:5px;"><b>Вязкость:</b></div>
-      <div>
-        ${item.viscosity.map(v => `<span class="badge">${v}</span>`).join("")}
-      </div>
-    </div>
-  `).join("");
-}
+        return `
+          <div class="section">
+            <div><b>Допуски:</b></div>
+            <div>
+              ${specs.map(s => `<span class="badge">${s}</span>`).join("") || "—"}
+            </div>
+
+            <div style="margin-top:5px;"><b>Вязкость:</b></div>
+            <div>
+              ${viscosity.map(v => `<span class="badge">${v}</span>`).join("") || "—"}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
 
     document.getElementById("liquids").innerHTML = `
       <h3>Масло двигателя</h3>
-      <p><b>Объем:</b> ${volume ? volume + " л" : "—"}</p>
+      <p class="volume">Объем: ${volume ? volume + " л" : "—"}</p>
 
       <h4>Лучший выбор</h4>
       ${renderList(best) || "<p>—</p>"}
 
       <h4>Альтернатива</h4>
       ${renderList(alt) || "<p>—</p>"}
+
+      ${sourceUrl ? `
+        <div style="margin-top:15px; text-align:right;">
+          <a href="${sourceUrl}" target="_blank" style="font-size:13px; color:#666;">
+            источник
+          </a>
+        </div>
+      ` : ""}
     `;
 
   } catch (e) {
     console.error("oil error", e);
   }
-  <div style="margin-top:15px; text-align:right;">
-  <a href="${sourceUrl}" target="_blank" style="font-size:13px; color:#666;">
-    источник
-  </a>
-</div>
 }
-// 🔁 старт polling
-setInterval(poll, 3000);
-
-</script>
-
-</body>
-</html>
