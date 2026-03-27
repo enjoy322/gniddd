@@ -115,38 +115,41 @@ console.log("HAS FLEX ROW:", $("tr.flexbe-table__row").length);
 
   const blocks = [];
 
-  $("tr.flexbe-table__row").each((i, el) => {
-    const th = $(el).find("th").first();
-    const tds = $(el).find("td");
+  let rows = $("tr.flexbe-table__row");
 
-    if (!th.length || tds.length < 2) return;
+// fallback если flex нет
+if (rows.length === 0) {
+  rows = $("table tr");
+}
 
-    const left = th.text().trim();
-    const middle = $(tds[0]).text().trim();
-    const right = $(tds[1]).text().trim();
+rows.each((i, el) => {
+  const th = $(el).find("th").first();
+  const tds = $(el).find("td");
 
-    // только двигатель
-    if (!left.includes("МАСЛО") || !left.includes("ДВИГАТЕЛЬ")) return;
+  if (!th.length || tds.length < 2) return;
 
-    const codes = extractCodes(left);
-    if (codes.length === 0) return;
+  const left = th.text().trim();
+  const middle = $(tds[0]).text().trim();
+  const right = $(tds[1]).text().trim();
 
-    const volumeMatch = left.match(/(\d\.\d)\s*л/);
+  if (!left.includes("МАСЛО") || !left.includes("ДВИГАТЕЛЬ")) return;
 
-    const oil = parseOilInfo(right);
+  const codes = extractCodes(left);
+  if (codes.length === 0) return;
 
-    blocks.push({
-      codes,
-      volume: volumeMatch ? volumeMatch[1] : null,
+  const volumeMatch = left.match(/(\d\.\d)\s*л/);
+  const oil = parseOilInfo(right);
 
-      oil: {
-        best: oil.best,
-        alternative: oil.alternative
-      },
-
-      raw: { left, middle, right }
-    });
+  blocks.push({
+    codes,
+    volume: volumeMatch ? volumeMatch[1] : null,
+    oil: {
+      best: oil.best,
+      alternative: oil.alternative
+    },
+    raw: { left, middle, right }
   });
+});
 
   // --------------------
   // 🧹 REMOVE DUPLICATES
