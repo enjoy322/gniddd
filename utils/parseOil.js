@@ -14,7 +14,8 @@ function extractCodes(left) {
   const matches = [...clean.matchAll(/\b[A-Z0-9]{3,6}\b/g)]
     .map(m => m[0]);
 
-  return [...new Set(matches)];
+  return [...new Set(matches)]
+    .filter(c => !/^\d+$/.test(c)); // убираем числа (типа 107)
 }
 
 
@@ -28,15 +29,24 @@ function extractViscosity(text) {
 
 
 // --------------------
-// 🔧 SPECS
+// 🔧 SPECS (ВСЕ ПОПУЛЯРНЫЕ)
 // --------------------
 function extractSpecs(text) {
   const vag = [...text.matchAll(/[A-Z]{2,}\s?\d{2,3}\.\d{2}/g)].map(m => m[0]);
+
   const acea = [...text.matchAll(/ACEA\s?[A-Z]\d/g)].map(m => m[0]);
+
   const api = [...text.matchAll(/API\s?[A-Z]{2}/g)].map(m => m[0]);
+
   const ilsac = [...text.matchAll(/ILSAC\s?GF-\d/g)].map(m => m[0]);
 
-  return [...new Set([...vag, ...acea, ...api, ...ilsac])];
+  const renault = [...text.matchAll(/RN\s?\d{4}/g)].map(m => m[0]);
+
+  const bmw = [...text.matchAll(/LL-\d{2}/g)].map(m => m[0]);
+
+  const mb = [...text.matchAll(/\b\d{3}\.\d\b/g)].map(m => m[0]); // 229.5
+
+  return [...new Set([...vag, ...acea, ...api, ...ilsac, ...renault, ...bmw, ...mb])];
 }
 
 
@@ -64,7 +74,7 @@ function parseOilInfo(right) {
     result.alternative.specs = [...new Set(extractSpecs(text))];
   }
 
-  // fallback
+  // fallback если нет структуры
   if (!result.best.specs.length) {
     result.best.specs = extractSpecs(right);
     result.best.viscosity = extractViscosity(right);
@@ -86,15 +96,11 @@ async function parseEngineBlocks(url) {
 
   const $ = cheerio.load(data);
 
-  console.log("FETCH:", url);
-  console.log("TABLES:", $("table").length);
-  console.log("FLEX ROWS:", $("tr.flexbe-table__row").length);
-
   const blocks = [];
 
   let rows = $("tr.flexbe-table__row");
 
-  // fallback
+  // fallback на обычные таблицы
   if (rows.length === 0) {
     rows = $("table tr");
   }
@@ -105,7 +111,7 @@ async function parseEngineBlocks(url) {
 
     let left, middle, right;
 
-    // flex таблица
+    // flex-таблица
     if (th.length) {
       if (tds.length < 2) return;
 
@@ -137,8 +143,7 @@ async function parseEngineBlocks(url) {
       oil: {
         best: oil.best,
         alternative: oil.alternative
-      },
-      raw: { left, middle, right }
+      }
     });
   });
 
