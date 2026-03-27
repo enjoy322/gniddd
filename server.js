@@ -183,6 +183,7 @@ async function extractVINonce(filePath) {
   return normalizeVIN(response.output_text);
 }
 
+
 // 🔁 2 попытки
 async function extractVIN(filePath) {
   for (let i = 0; i < 2; i++) {
@@ -313,6 +314,55 @@ app.post("/manual/:id", (req, res) => {
   saveVIN(session, vin);
 
   res.json({ vin });
+});
+
+app.get("/test-final", async (req, res) => {
+  try {
+    const tests = [
+      {
+        name: "Skoda Octavia",
+        url: "https://podbormasla.ru/skoda/octavia/octavia_3/",
+        engine: "CWVA"
+      },
+      {
+        name: "Kia Rio",
+        url: "https://podbormasla.ru/kia/rio/gen3/",
+        engine: "G4FA"
+      },
+      {
+        name: "VW Polo",
+        url: "https://podbormasla.ru/volkswagen/polo/polo_5/",
+        engine: "CFNA"
+      },
+      {
+        name: "Renault Sandero",
+        url: "https://podbormasla.ru/renault/sandero/sandero_2/",
+        engine: "D4F"
+      }
+    ];
+
+    const results = [];
+
+    for (let test of tests) {
+      const blocks = await parseEngineBlocks(test.url);
+
+      const found = blocks.find(b =>
+        b.codes.includes(test.engine)
+      );
+
+      results.push({
+        name: test.name,
+        engine: test.engine,
+        found: !!found,
+        result: found || null
+      });
+    }
+
+    res.json(results);
+
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // 📊 данные
