@@ -706,6 +706,7 @@
         const volume = oil.volume;
         const best   = oil.oil?.best        || [];
         const alt    = oil.oil?.alternative || [];
+        const sourceType = data?.source;
 
         function renderItems(arr) {
           if (!arr.length) return '<p style="color:var(--soft);font-size:13px">—</p>';

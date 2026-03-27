@@ -466,52 +466,96 @@ app.get("/oil/:vin", async (req, res) => {
     );
 
     const car = carRes.data;
-
     const tree = require("./tree.json");
 
     const url = await resolveUrl(car, tree, openai);
 
+    // ─────────────
+    // ❌ НЕТ СТРАНИЦЫ → GPT GLOBAL
+    // ─────────────
     if (!url) {
-      return res.json({ error: "generation not found", car });
+      console.log("NO URL → GPT GLOBAL");
+
+      const gpt = await fallbackGlobal(car);
+
+      return res.json({
+        car,
+        url: null,
+        source: gpt?.found ? "gpt" : "not_found",
+        oil: gpt?.found
+          ? {
+              volume: gpt.volume || null,
+              oil: {
+                best: gpt.best || [],
+                alternative: []
+              }
+            }
+          : null
+      });
     }
 
+    // ─────────────
+    // ПАРСИНГ СТРАНИЦЫ
+    // ─────────────
     const blocks = await parseEngineBlocks(url);
-const engine = findEngineBlock(blocks, car);
+    const engine = findEngineBlock(blocks, car);
 
-let oil = null;
-let source = "parsed";
+    let oil = null;
+    let source = "parsed";
 
-// если парсер нашёл
-if (engine) {
-  oil = engine;
-}
+    if (engine) {
+      oil = engine;
+    } else {
+      console.log("PARSER FAIL → GPT HTML");
 
-// если нет → GPT по HTML
-else {
-  console.log("PARSER FAIL → GPT");
+      const gpt = await fallbackFromPage(url, car);
 
-  const gpt = await fallbackFromPage(url, car);
+      if (gpt && gpt.found) {
+        oil = {
+          volume: null,
+          oil: {
+            best: gpt.best || [],
+            alternative: []
+          }
+        };
+        source = "gpt_html";
+      } else {
+        // ─────────────
+        // ФИНАЛЬНЫЙ ФОЛЛБЭК → GPT GLOBAL
+        // ─────────────
+        console.log("HTML FAIL → GPT GLOBAL");
 
-  if (gpt && gpt.found) {
-    oil = gpt;
-    source = "gpt_html";
-  } else {
-    oil = null;
-    source = "not_found";
-  }
-}
+        const gptGlobal = await fallbackGlobal(car);
 
-res.json({
-  car,
-  url,
-  source,
-  oil
-});
+        if (gptGlobal && gptGlobal.found) {
+          oil = {
+            volume: gptGlobal.volume || null,
+            oil: {
+              best: gptGlobal.best || [],
+              alternative: []
+            }
+          };
+          source = "gpt";
+        } else {
+          oil = null;
+          source = "not_found";
+        }
+      }
+    }
+
+    res.json({
+      car,
+      url,
+      source,
+      oil
+    });
 
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
+
+
 // 📊 данные
 app.get("/data/:id", (req, res) => {
   const session = sessions[req.params.id];
