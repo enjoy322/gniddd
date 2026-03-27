@@ -5,6 +5,7 @@ const fs = require("fs");
 const axios = require("axios");
 const https = require("https");
 const cheerio = require("cheerio");
+const { parseEngineBlocks, findEngineBlock } = require("./utils/parseOil");
 const app = express();
 app.use(express.json());
 
@@ -252,7 +253,27 @@ app.get("/test-engine", async (req, res) => {
 
     const blocks = await parseEngineBlocks(url);
 
-    res.json(blocks.slice(0, 5)); // первые 5, чтобы не утонуть
+    res.json(blocks);
+
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+app.get("/test-match", async (req, res) => {
+  try {
+    const url = "https://podbormasla.ru/skoda/octavia/octavia_3/";
+
+    const car = {
+      engine: {
+        code: "CWVA",
+        volume: 1.6
+      }
+    };
+
+    const blocks = await parseEngineBlocks(url);
+    const engine = findEngineBlock(blocks, car);
+
+    res.json(engine);
 
   } catch (e) {
     res.status(500).json({ error: e.message });
