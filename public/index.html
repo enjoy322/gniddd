@@ -12,78 +12,69 @@
 
 <br><br>
 
-<input type="file" id="fileInput" accept="image/*">
+<input type="file" id="fileInput" accept="image/*" capture="environment">
 <button onclick="upload()">Загрузить фото</button>
 
 <h2>VIN: <span id="vin">—</span></h2>
 
-<h3>История:</h3>
-<ul id="history"></ul>
+<div id="carInfo"></div>
+
+<!-- история скрыта -->
+<div id="history" style="display:none"></div>
+
+<div id="liquids"></div>
 
 <script>
-  
+
 let sessionId = null;
 let loading = false;
+
 init();
 
+// 🆕 INIT
 async function init() {
-  console.log("INIT START");
-
   const path = location.pathname.slice(1);
 
-  // если нет session_id
   if (!path) {
-    console.log("NO SESSION → creating");
-
     const res = await fetch("/new-session");
     const data = await res.json();
-
-    console.log("NEW SESSION:", data);
-
     window.location.href = "/" + data.session_id;
     return;
   }
-
-  // если есть session_id
-  console.log("SESSION FOUND:", path);
 
   sessionId = path;
   document.getElementById("session").innerText = sessionId;
 }
 
-// 🔹 ЗАГРУЗКА ФОТО
+// 📤 ЗАГРУЗКА ФОТО
 async function upload() {
   loading = true;
-document.getElementById("vin").innerText = "Обработка...";
+  document.getElementById("vin").innerText = "Обработка...";
+
   const file = document.getElementById("fileInput").files[0];
 
   if (!file) {
     alert("выбери файл");
+    loading = false;
     return;
   }
-
-  document.getElementById("vin").innerText = "Обработка...";
 
   const fd = new FormData();
   fd.append("image", file);
 
   try {
-    const res = await fetch("/upload/" + sessionId, {
+    await fetch("/upload/" + sessionId, {
       method: "POST",
       body: fd
     });
-
-    const data = await res.json();
-    console.log("upload result:", data);
-
   } catch (e) {
-    console.error("upload error:", e);
+    console.error(e);
   }
+
   loading = false;
 }
 
-
-// 🔹 ОБНОВЛЕНИЕ
+// 🔁 POLL
 async function poll() {
   if (!sessionId) return;
 
@@ -93,25 +84,58 @@ async function poll() {
 
     const data = await res.json();
 
-if (!loading) {
-  document.getElementById("vin").innerText = data.vin || "—";
-}
+    if (!loading) {
+      document.getElementById("vin").innerText = data.vin || "—";
 
-    const ul = document.getElementById("history");
-    ul.innerHTML = "";
-
-    data.history.forEach(v => {
-      const li = document.createElement("li");
-      li.innerText = v;
-      ul.appendChild(li);
-    });
+      if (data.vin) {
+        loadCarInfo(data.vin);
+        loadLiquids(data.vin);
+      }
+    }
 
   } catch (e) {
-    console.error("poll error:", e);
+    console.error(e);
   }
 }
 
+// 🚗 CAR INFO
+async function loadCarInfo(vin) {
+  try {
+    const res = await fetch(`/car-info/${vin}`);
+    const data = await res.json();
+
+    document.getElementById("carInfo").innerHTML = `
+      <h3>${data.brand} ${data.model} (${data.year})</h3>
+      <p>Двигатель: ${data.engine.code} ${data.engine.volume}л</p>
+      <p>Тип: ${data.engine.type}</p>
+      <p>Мощность: ${data.power_hp} л.с</p>
+      <p>КПП: ${data.transmission || "нет данных"}</p>
+    `;
+  } catch (e) {
+    console.error("car info error", e);
+  }
+}
+
+// 🛢 LIQUIDS
+async function loadLiquids(vin) {
+  try {
+    const res = await fetch(`/liquids/${vin}`);
+    const data = await res.json();
+
+    document.getElementById("liquids").innerHTML = `
+      <h3>Объемы</h3>
+      <p>Двигатель: ${data.engine_oil || "—"}</p>
+      <p>КПП: ${data.gearbox || "нет данных"}</p>
+      <p>Охлаждение: ${data.coolant || "—"}</p>
+    `;
+  } catch (e) {
+    console.error("liquids error", e);
+  }
+}
+
+// 🔁 старт polling
 setInterval(poll, 2000);
+
 </script>
 
 </body>
