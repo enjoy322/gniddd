@@ -25,32 +25,30 @@
 let sessionId = null;
 let loading = false;
 
-// 🔹 ИНИЦИАЛИЗАЦИЯ
 async function init() {
+  console.log("INIT START");
+
   const path = location.pathname.slice(1);
 
-if (!path) {
-  const res = await fetch("/new-session");
-  const data = await res.json();
+  // если нет session_id
+  if (!path) {
+    console.log("NO SESSION → creating");
 
-  window.location.href = "/" + data.session_id;
-  return;
-}
+    const res = await fetch("/new-session");
+    const data = await res.json();
 
-  // 🔥 проверяем существует ли сессия
-  const res = await fetch("/data/" + path);
+    console.log("NEW SESSION:", data);
 
-  if (!res.ok) {
-    const newRes = await fetch("/new-session");
-    const data = await newRes.json();
     window.location.href = "/" + data.session_id;
     return;
   }
 
+  // если есть session_id
+  console.log("SESSION FOUND:", path);
+
   sessionId = path;
   document.getElementById("session").innerText = sessionId;
 }
-
 
 // 🔹 ЗАГРУЗКА ФОТО
 async function upload() {
