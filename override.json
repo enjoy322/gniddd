@@ -1,93 +1,72 @@
 {
-  "_comment": "Ручные допуски для топ-брендов. oem_add — добавить OEM допуски. oem_exclude_for — отсеять товар если авто требует этот допуск.",
+  "_comment": "Маппинг продуктов → артикулы + OEM допуски. articles_match — подстроки для поиска в артикуле товара.",
 
-  "0W20AR225": {
-    "oem_add": ["Fiat 9.55535-DSX", "Volvo VCC RBS0-2AE"],
-    "note": "AREOL 0W-20 C5 Volvo"
+  "AREOL_5W30_C2_PSA": {
+    "articles_match": ["5W30AR128", "5W30AR071"],
+    "oem_add": ["Renault RN0700", "RN0700", "PSA B71 2290", "Fiat 9.55535-S1"]
   },
-  "0W20AR214": {
-    "oem_add": ["Fiat 9.55535-DSX", "Volvo VCC RBS0-2AE"],
-    "note": "AREOL 0W-20 C5 Volvo"
+  "AREOL_5W30_A3B4": {
+    "articles_match": ["5W30AR014", "5W30AR013"],
+    "oem_add": ["Renault RN0700", "RN0700", "VW 502.00", "VW 505.00", "MB 229.3", "MB 226.5", "BMW LL-01"]
   },
-
-  "5W30AR128": {
-    "oem_add": ["Fiat 9.55535-S1", "PSA B71 2290", "Renault RN0700", "RN0700"],
-    "note": "AREOL 5W-30 C2 PSA/Renault"
+  "AREOL_5W30_A5B5_FE": {
+    "articles_match": ["5W30AR017"],
+    "oem_add": ["Renault RN0700", "RN0700", "Ford WSS-M2C913-C", "Ford WSS-M2C913-D", "BMW LL-01 FE"]
   },
-  "5W30AR071": {
-    "oem_add": ["Fiat 9.55535-S1", "PSA B71 2290", "Renault RN0700", "RN0700"],
-    "note": "AREOL 5W-30 C2 PSA/Renault"
+  "AREOL_5W30_C4_RN0720": {
+    "articles_match": ["5W30AR125"],
+    "oem_add": ["Renault RN0720", "RN0720", "MB 226.51", "MB 229.51"]
   },
-
-  "5W30AR006": {
-    "note": "AREOL 5W-30 C2/C3 Universal (без OEM допусков)"
+  "AREOL_5W30_DEXOS1": {
+    "articles_match": ["5W30AR074"],
+    "oem_add": ["GM Dexos1 Gen 3", "Ford WSS-M2C946-A"],
+    "oem_exclude_for": ["RN0700", "RN0710", "VW502.00", "VW504.00", "MB229.3", "MB229.5"]
   },
-
-  "0W30AR223": {
-    "oem_add": ["BMW LL-04", "Fiat 9.55535-GS1", "Fiat 9.55535-DS1", "MB 229.31", "MB 229.51", "MB 229.52", "Porsche C30", "VW 504.00", "VW 507.00"],
-    "note": "AREOL 0W-30 C2/C3 VAG/BMW/MB Long Life"
+  "AREOL_5W30_C3_VAG": {
+    "articles_match": ["5W30AR020"],
+    "oem_add": ["BMW LL-04", "MB 229.31", "MB 229.51", "MB 229.52", "VW 504.00", "VW 507.00", "Porsche C30"],
+    "oem_exclude_for": ["RN0700", "RN0710"]
   },
-
-  "5W30AR125": {
-    "oem_add": ["Fiat 9.55535-S4", "MB 226.51", "MB 229.51", "Renault RN0720", "RN0720"],
-    "note": "AREOL 5W-30 C3/C4 RN0720 дизель Renault"
+  "AREOL_5W30_C2C3_UNIVERSAL": {
+    "articles_match": ["5W30AR006"],
+    "oem_add": []
   },
-
-  "5W30AR074": {
-    "oem_add": ["GM Dexos1 Gen 3", "Chrysler MS-6395", "Ford WSS-M2C946-A", "Ford WSS-M2C946-B1", "Ford WSS-M2C961-A1"],
-    "oem_exclude_for": ["RN0700", "RN0710", "RN 0700", "RN 0710", "VW502.00", "VW504.00", "MB229.3", "MB229.5"],
-    "note": "AREOL 5W-30 Dexos1/ILSAC — GM/Ford. НЕ для Renault/VW/MB"
+  "AREOL_5W40_C3_UNIVERSAL": {
+    "articles_match": ["5W40AR062"],
+    "oem_add": ["Renault RN0700", "RN0700", "Renault RN0710", "RN0710", "VW 502.00", "VW 505.00", "VW 505.01", "MB 229.31", "MB 229.51", "MB 229.52", "BMW LL-04", "Porsche A40", "GM Dexos2"]
   },
-
-  "0W20AR068": {
-    "oem_add": ["GM Dexos1 Gen 3", "Chrysler MS-6395", "Fiat 9.55535-CR1", "Fiat 9.55535-GSX", "Ford WSS-M2C930-A", "Ford WSS-M2C945-A", "Ford WSS-M2C946-A", "Ford WSS-M2C947-A", "Ford WSS-M2C962-A"],
-    "note": "AREOL 0W-20 Dexos1 Extended — GM/Ford"
+  "AREOL_5W40_A3B4": {
+    "articles_match": ["5W40AR009"],
+    "oem_add": ["Renault RN0700", "RN0700", "Renault RN0710", "RN0710", "VW 502.00", "VW 505.00", "MB 229.3", "MB 229.5", "BMW LL-01", "Porsche A40"]
   },
-
-  "5W30AR014": {
-    "oem_add": ["VW 502.00", "VW 505.00", "MB 229.3", "MB 226.5", "BMW LL-01", "Opel GM-LL-B-25", "Renault RN0700", "RN0700"],
-    "note": "AREOL 5W-30 A3/B4 — VW/MB/BMW/Renault универсальный"
+  "AREOL_0W30_C2C3_VAG": {
+    "articles_match": ["0W30AR223"],
+    "oem_add": ["BMW LL-04", "MB 229.31", "MB 229.51", "MB 229.52", "VW 504.00", "VW 507.00", "Porsche C30"]
   },
-
-  "5W30AR017": {
-    "oem_add": ["BMW LL-01 FE", "Ford WSS-M2C913-C", "Ford WSS-M2C913-D", "JLR STJLR.03.5003", "Renault RN0700", "RN0700"],
-    "note": "AREOL 5W-30 A5/B5 FE — Ford/BMW/Renault/JLR"
+  "AREOL_0W30_A3B4": {
+    "articles_match": ["0W30AR059"],
+    "oem_add": ["Renault RN0700", "RN0700", "BMW LL-01", "MB 229.3", "MB 226.5", "VW 502.00", "VW 505.00"]
   },
-
-  "0W30AR059": {
-    "oem_add": ["BMW LL-01", "MB 229.3", "MB 226.5", "Renault RN0700", "RN0700", "VW 502.00", "VW 505.00"],
-    "note": "AREOL 0W-30 A3/B4 — BMW/MB/Renault/VW"
+  "AREOL_0W30_A7B7_VOLVO": {
+    "articles_match": ["0W30AR220"],
+    "oem_add": ["Renault RN0700", "RN0700", "Volvo VCC 95200377"]
   },
-
-  "5W40AR062": {
-    "oem_add": ["GM Dexos2", "BMW LL-04", "Fiat 9.55535-S2", "Fiat 9.55535-T2", "Ford WSS-M2C917-A", "MB 229.31", "MB 229.51", "MB 229.52", "Porsche A40", "Renault RN0700", "RN0700", "Renault RN0710", "RN0710", "VW 502.00", "VW 505.00", "VW 505.01"],
-    "note": "AREOL 5W-40 C3 Universal — VW/MB/BMW/Renault/Porsche/GM"
+  "AREOL_0W20_C5_VOLVO": {
+    "articles_match": ["0W20AR225", "0W20AR214"],
+    "oem_add": ["Volvo VCC RBS0-2AE", "Fiat 9.55535-DSX"]
   },
-
-  "5W40AR009": {
-    "oem_add": ["BMW LL-01", "Fiat 9.55535-M2", "MB 226.5", "MB 229.1", "MB 229.3", "MB 229.5", "Opel GM-LL-B-025", "Porsche A40", "PSA B71 2300", "Renault RN0700", "RN0700", "Renault RN0710", "RN0710", "VW 502.00", "VW 505.00"],
-    "note": "AREOL 5W-40 A3/B4 — BMW/MB/Porsche/Renault/VW"
+  "AREOL_0W20_DEXOS1": {
+    "articles_match": ["0W20AR068"],
+    "oem_add": ["GM Dexos1 Gen 3", "Ford WSS-M2C930-A", "Ford WSS-M2C947-A"]
+  },
+  "AREOL_0W20_C6_MODERN": {
+    "articles_match": ["0W20AR217"],
+    "oem_add": ["BMW LL-14 FE+", "BMW LL-17 FE+", "MB 229.71", "MB 229.72", "Volvo VCC C6SP"]
   },
 
-  "0W30AR220": {
-    "oem_add": ["Renault RN0700", "RN0700", "Volvo VCC 95200377"],
-    "note": "AREOL 0W-30 A7/B7 — Renault/Volvo"
-  },
-
-  "0W20AR217": {
-    "oem_add": ["BMW LL-14 FE+", "BMW LL-17 FE+", "Chrysler MS-12145", "Fiat 9.55535-GSX", "Ford WSS-M2C947-B1", "Ford WSS-M2C952-A1", "Ford WSS-M2C954-A1", "Ford WSS-M2C962-A1", "GM DexosD", "JLR STJLR.03.5006", "MB 229.71", "MB 229.72", "Volvo VCC C6SP", "Volvo VCC RBS0-2AE"],
-    "note": "AREOL 0W-20 C6 Modern — BMW/MB/Ford/Volvo/GM"
-  },
-
-  "5W30AR020": {
-    "oem_add": ["BMW LL-04", "MB 229.31", "MB 229.51", "MB 229.52", "Porsche C30", "VW 504.00", "VW 507.00"],
-    "oem_exclude_for": ["RN0700", "RN0710", "RN 0700", "RN 0710"],
-    "note": "AREOL 5W-30 C3 VAG/BMW/MB Long Life. НЕ для Renault"
-  },
-
-  "XFFP4L": {
-    "oem_add": ["FORD WSS-M2C913-A", "FORD WSS-M2C913-B", "FORD WSS-M2C913-C"],
-    "oem_exclude_for": ["RN0700", "RN0710", "RN 0700", "RN 0710", "MB229.3", "MB229.5", "VW502.00", "VW504.00", "BMW LL-01", "BMW LL-04"],
-    "note": "Comma X-Flow Type F Plus 5W-30 — ТОЛЬКО Ford"
+  "COMMA_XFFP4L": {
+    "articles_match": ["XFFP4L"],
+    "oem_add": ["Ford WSS-M2C913-A", "Ford WSS-M2C913-B", "Ford WSS-M2C913-C"],
+    "oem_exclude_for": ["RN0700", "RN0710", "MB229.3", "MB229.5", "VW502.00", "VW504.00", "BMWLL01", "BMWLL04"]
   }
 }

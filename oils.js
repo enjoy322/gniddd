@@ -14,38 +14,74 @@ const TOP_BRANDS = ["AREOL", "COMMA", "ZIC"];
 const MID_BRANDS = ["LUKOIL", "SINTEC"];
 
 /* ══════════════════════════════════════════════════════════════
-   ИЕРАРХИИ ДОПУСКОВ
+   ИЕРАРХИИ
    ══════════════════════════════════════════════════════════════ */
-const API_GAS   = ["SA","SB","SC","SD","SE","SF","SG","SH","SJ","SL","SM","SN","SP","SQ"];
-const API_DSL   = ["CA","CB","CC","CD","CE","CF","CF2","CG4","CH4","CI4","CJ4","CK4","FA4"];
-const ILSAC     = ["GF-1","GF-2","GF-3","GF-4","GF-5","GF-6A","GF-6B","GF-7A"];
-const ACEA_A    = ["A1","A3","A5","A7"];
-const ACEA_B    = ["B1","B3","B4","B5","B7"];
-const ACEA_C    = ["C1","C2","C3","C4","C5","C6"];
+const API_GAS = ["SA","SB","SC","SD","SE","SF","SG","SH","SJ","SL","SM","SN","SP","SQ"];
+const API_DSL = ["CA","CB","CC","CD","CE","CF","CF2","CG4","CH4","CI4","CJ4","CK4","FA4"];
+const ILSAC   = ["GF-1","GF-2","GF-3","GF-4","GF-5","GF-6A","GF-6B","GF-7A"];
+const ACEA_A  = ["A1","A3","A5","A7"];
+const ACEA_B  = ["B1","B3","B4","B5","B7"];
+const ACEA_C  = ["C1","C2","C3","C4","C5","C6"];
 
 /* ══════════════════════════════════════════════════════════════
    НОРМАЛИЗАЦИЯ
    ══════════════════════════════════════════════════════════════ */
-function norm(s)  { return (s || "").trim().toUpperCase().replace(/\s+/g, ""); }
+function norm(s)  { return (s || "").trim().toUpperCase().replace(/[\s\-_.]/g, ""); }
 function clean(v) { return (v || "").trim(); }
-
 function splitSpecs(raw) {
   if (!raw) return [];
   return raw.split(";").map(s => s.trim()).filter(Boolean);
 }
+function isViscosity(s) { return /^\d+W\d+$/i.test(norm(s)); }
 
 /* ══════════════════════════════════════════════════════════════
-   ОБЪЁМ КАНИСТРЫ — строго 4л или 5л
+   ENRICH — ищем допуски в description через regex
    ══════════════════════════════════════════════════════════════ */
-function pickCanisterVolume(fillVol) {
-  if (!fillVol) return 4;
-  return fillVol > 4.3 ? 5 : 4;
+const OEM_PATTERNS = [
+  { rx: /RN\s*0700/i,              spec: "RN0700" },
+  { rx: /RN\s*0710/i,              spec: "RN0710" },
+  { rx: /RN\s*0720/i,              spec: "RN0720" },
+  { rx: /VW\s*502[\s.]*00/i,       spec: "VW502.00" },
+  { rx: /VW\s*504[\s.]*00/i,       spec: "VW504.00" },
+  { rx: /VW\s*505[\s.]*00/i,       spec: "VW505.00" },
+  { rx: /VW\s*505[\s.]*01/i,       spec: "VW505.01" },
+  { rx: /VW\s*507[\s.]*00/i,       spec: "VW507.00" },
+  { rx: /MB\s*229[\s.]*3\b/i,      spec: "MB229.3" },
+  { rx: /MB\s*229[\s.]*5\b/i,      spec: "MB229.5" },
+  { rx: /MB\s*229[\s.]*31/i,       spec: "MB229.31" },
+  { rx: /MB\s*229[\s.]*51/i,       spec: "MB229.51" },
+  { rx: /MB\s*229[\s.]*52/i,       spec: "MB229.52" },
+  { rx: /MB\s*226[\s.]*5/i,        spec: "MB226.5" },
+  { rx: /BMW\s*LL[\s-]*01\b/i,     spec: "BMWLL-01" },
+  { rx: /BMW\s*LL[\s-]*04\b/i,     spec: "BMWLL-04" },
+  { rx: /Dexos\s*1/i,              spec: "GMDEXOS1" },
+  { rx: /Dexos\s*2/i,              spec: "GMDEXOS2" },
+  { rx: /WSS[\s-]*M2C[\s-]*913/i,  spec: "FORDWSS-M2C913" },
+  { rx: /WSS[\s-]*M2C[\s-]*917/i,  spec: "FORDWSS-M2C917" },
+  { rx: /WSS[\s-]*M2C[\s-]*946/i,  spec: "FORDWSS-M2C946" },
+  { rx: /PSA\s*B71\s*2290/i,       spec: "PSAB712290" },
+  { rx: /GF[\s-]*6A?\b/i,          spec: "ILSACGF-6A" },
+  { rx: /GF[\s-]*5\b/i,            spec: "ILSACGF-5" },
+];
+
+function enrichFromDescription(item) {
+  const text = [item.description || "", ...(item.oem || [])].join(" ");
+  const existing = new Set((item.all_specs || []).map(norm));
+  const enriched = [...(item.all_specs || [])];
+  for (const p of OEM_PATTERNS) {
+    if (p.rx.test(text) && !existing.has(norm(p.spec))) {
+      enriched.push(p.spec);
+      existing.add(norm(p.spec));
+    }
+  }
+  return enriched;
 }
 
 /* ══════════════════════════════════════════════════════════════
-   OVERRIDE — ручные допуски для топ-брендов
+   OVERRIDE — поиск по articles_match (подстрока в артикуле)
    ══════════════════════════════════════════════════════════════ */
 let _ovr = null;
+let _ovrIndex = null; // article_norm → override entry
 
 function loadOverrides() {
   if (_ovr !== null) return _ovr;
@@ -53,87 +89,96 @@ function loadOverrides() {
     _ovr = fs.existsSync(OVERRIDE_PATH)
       ? JSON.parse(fs.readFileSync(OVERRIDE_PATH, "utf-8"))
       : {};
-    const n = Object.keys(_ovr).filter(k => k !== "_comment").length;
-    if (n) console.log(`[oils] loaded ${n} overrides`);
   } catch (e) {
     console.error("[oils] override error:", e.message);
     _ovr = {};
   }
+
+  // Строим индекс: norm(article) → ovr entry
+  _ovrIndex = {};
+  for (const [key, val] of Object.entries(_ovr)) {
+    if (key === "_comment" || !val.articles_match) continue;
+    for (const art of val.articles_match) {
+      _ovrIndex[norm(art)] = val;
+    }
+  }
+
+  const n = Object.keys(_ovrIndex).length;
+  if (n) console.log(`[oils] override index: ${n} articles mapped`);
   return _ovr;
 }
 
-function resetOverrideCache() { _ovr = null; }
+function findOverride(article) {
+  loadOverrides();
+  if (!_ovrIndex) return null;
+
+  const na = norm(article);
+
+  // Точное совпадение
+  if (_ovrIndex[na]) return _ovrIndex[na];
+
+  // Поиск: артикул товара СОДЕРЖИТ ключ из индекса, или наоборот
+  for (const [key, val] of Object.entries(_ovrIndex)) {
+    if (na.includes(key) || key.includes(na)) return val;
+  }
+
+  return null;
+}
 
 /**
- * Мержит override в item. Возвращает { item, excluded }.
- * excluded=true → товар запрещён для этих requiredSpecs.
+ * Применяет override к товару. Возвращает { specs, excluded }.
  */
-function applyOverride(item, requiredSpecs) {
-  const overrides = loadOverrides();
-  // Ищем по артикулу (точно), потом по SKU, потом upper-trim
-  const key = Object.keys(overrides).find(k =>
-    k === item.article ||
-    k === item.sku ||
-    norm(k) === norm(item.article) ||
-    norm(k) === norm(item.sku)
-  );
-  if (!key || key === "_comment") return { item, excluded: false };
-  const ovr = overrides[key];
+function applyOverride(article, existingSpecs, requiredSpecs) {
+  const ovr = findOverride(article);
+  if (!ovr) return { addSpecs: [], excluded: false };
 
-  // 1) Проверяем oem_exclude_for ПЕРВЫМ
+  // Проверяем oem_exclude_for
   if (ovr.oem_exclude_for && ovr.oem_exclude_for.length && requiredSpecs.length) {
     const excSet = new Set(ovr.oem_exclude_for.map(norm));
     for (const req of requiredSpecs) {
       if (excSet.has(norm(req))) {
-        return { item, excluded: true };
+        return { addSpecs: [], excluded: true };
       }
     }
   }
 
-  // 2) Добавляем oem_add в oem и all_specs
-  if (ovr.oem_add && ovr.oem_add.length) {
-    const existing = new Set((item.all_specs || []).map(norm));
-    const fresh = ovr.oem_add.filter(s => !existing.has(norm(s)));
-    item = {
-      ...item,
-      oem:       [...(item.oem || []), ...fresh],
-      all_specs: [...(item.all_specs || []), ...fresh],
-    };
-  }
-
-  return { item, excluded: false };
+  // Добавляем oem_add
+  const existing = new Set(existingSpecs.map(norm));
+  const fresh = (ovr.oem_add || []).filter(s => !existing.has(norm(s)));
+  return { addSpecs: fresh, excluded: false };
 }
 
 /* ══════════════════════════════════════════════════════════════
-   СОВМЕСТИМОСТЬ ДОПУСКОВ
+   ОБЪЁМ
    ══════════════════════════════════════════════════════════════ */
-
-/** Проверяет совместимость в рамках одной иерархии. Возвращает score 0-10. */
-function hierarchyMatch(reqNorm, candNorm, list) {
-  const ri = list.indexOf(reqNorm);
-  const ci = list.indexOf(candNorm);
-  if (ri < 0 || ci < 0) return 0;
-  if (ci === ri) return 10;  // точное
-  if (ci > ri)  return 8;   // кандидат новее — обратная совместимость
-  return 0;                   // кандидат старее — не подходит
+function pickCanisterVolume(fillVol) {
+  if (!fillVol) return 4;
+  return fillVol > 4.3 ? 5 : 4;
 }
 
-/**
- * Сравнивает один требуемый допуск с одним допуском кандидата.
- * Возвращает 0..10 (0 = не совместимы, 10 = точное совпадение).
- */
+/* ══════════════════════════════════════════════════════════════
+   SPEC COMPAT
+   ══════════════════════════════════════════════════════════════ */
+function hierarchyMatch(r, c, list) {
+  const ri = list.indexOf(r), ci = list.indexOf(c);
+  if (ri < 0 || ci < 0) return 0;
+  if (ci === ri) return 10;
+  if (ci > ri) return 8;
+  return 0;
+}
+
 function specCompat(reqRaw, candRaw) {
-  const r = norm(reqRaw);
-  const c = norm(candRaw);
+  const r = norm(reqRaw), c = norm(candRaw);
   if (r === c) return 10;
 
-  // ── API ──
-  // Нормализуем: "APISN" → "SN", "APISN/CF" → ["SN","CF"]
-  const rApi = r.replace(/^API/, "");
-  const cApi = c.replace(/^API/, "");
-  // Проверяем каждую пару через "/" разделитель
-  const rParts = rApi.split("/");
-  const cParts = cApi.split("/");
+  // Частичное OEM (FORDWSSM2C913 ⊂ FORDWSSM2C913C)
+  if (r.length > 4 && c.length > 4) {
+    if (c.startsWith(r) || r.startsWith(c)) return 9;
+  }
+
+  // API
+  const rParts = r.replace(/^API/, "").split("/");
+  const cParts = c.replace(/^API/, "").split("/");
   let best = 0;
   for (const rp of rParts) {
     for (const cp of cParts) {
@@ -144,59 +189,47 @@ function specCompat(reqRaw, candRaw) {
   }
   if (best > 0) return best;
 
-  // ── ILSAC ──
-  function ilsacKey(s) {
-    const m = s.match(/(GF-?\d[AB]?)/i);
-    return m ? m[1].toUpperCase().replace(/GF(\d)/, "GF-$1") : null;
-  }
-  const rI = ilsacKey(r), cI = ilsacKey(c);
+  // ILSAC
+  const ilsac = s => { const m = s.match(/(GF\d[AB]?)/i); return m ? "GF-" + m[1].replace(/^GF-?/i,"") : null; };
+  const rI = ilsac(r), cI = ilsac(c);
   if (rI && cI) return hierarchyMatch(rI, cI, ILSAC);
 
-  // ── ACEA ──
-  // "ACEAA3/B4" → ["A3","B4"];  "ACEAC2" → ["C2"]
-  function aceaParts(s) {
-    const m = s.replace(/^ACEA/, "").match(/[A-C]\d/g);
-    return m || [];
-  }
-  const rA = aceaParts(r), cA = aceaParts(c);
+  // ACEA
+  const acea = s => (s.replace(/^ACEA/,"").match(/[A-C]\d/g)) || [];
+  const rA = acea(r), cA = acea(c);
   if (rA.length && cA.length) {
-    let matches = 0, total = rA.length;
+    let matches = 0;
     for (const rp of rA) {
-      let pBest = 0;
       for (const cp of cA) {
-        if (rp === cp) { pBest = 10; break; }
+        if (rp === cp) { matches++; break; }
         if (rp[0] === cp[0]) {
-          const list = rp[0] === "A" ? ACEA_A : rp[0] === "B" ? ACEA_B : ACEA_C;
-          pBest = Math.max(pBest, hierarchyMatch(rp, cp, list));
+          const list = rp[0]==="A"?ACEA_A:rp[0]==="B"?ACEA_B:ACEA_C;
+          if (hierarchyMatch(rp, cp, list) > 0) { matches++; break; }
         }
       }
-      if (pBest > 0) matches++;
     }
-    if (matches > 0) return Math.round((matches / total) * 10);
+    if (matches > 0) return Math.round((matches / rA.length) * 10);
   }
 
-  // OEM — только точное (уже проверено выше через r===c)
   return 0;
 }
 
-/** Вес допуска для итогового скора */
-function specWeight(raw) {
+function isOem(raw) {
   const n = norm(raw);
-  // OEM-допуски — максимальный вес
-  if (/^(VW|MB|RN|BMW|FORD|GM|PSA|FIAT|PORSCHE|DEXOS|CHRYSLER|JLR|VOLVO|RENAULT|OPEL|HYUNDAI)/i.test(n)) return 15;
+  return /^(VW|MB|RN|BMW|FORD|GM|PSA|FIAT|PORSCHE|DEXOS|CHRYSLER|JLR|VOLVO|RENAULT|OPEL|HYUNDAI|TOYOTA|NISSAN)/i.test(n);
+}
+
+function specWeight(raw) {
+  if (isOem(raw)) return 15;
+  const n = norm(raw);
   if (/^ACEA/.test(n)) return 8;
   if (/GF/.test(n) || /ILSAC/.test(n)) return 8;
   if (/^API/.test(n) || API_GAS.includes(n) || API_DSL.includes(n)) return 6;
   return 5;
 }
 
-/** Является ли допуск OEM-специфичным */
-function isOem(raw) {
-  return specWeight(raw) === 15;
-}
-
 /* ══════════════════════════════════════════════════════════════
-   MATCHOIL — основная функция подбора
+   MATCHOIL v3 FINAL
    ══════════════════════════════════════════════════════════════ */
 function matchOil({ specs = [], volume = null, viscosity = null, prefs = {}, limit = 6 } = {}) {
   let catalog;
@@ -207,52 +240,49 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {}, lim
     return [];
   }
 
-  const reqSpecs  = specs.map(norm).filter(Boolean);
+  // Фильтруем вязкости из specs!
+  const reqSpecs  = specs.map(s => s.trim()).filter(s => s && !isViscosity(s)).map(norm);
   const hasReqOem = reqSpecs.some(isOem);
   const target    = pickCanisterVolume(volume);
 
-  // Вязкость
   const clientVisc = prefs?.viscosity ? norm(prefs.viscosity) : null;
   const autoVisc   = viscosity ? norm(viscosity) : null;
   const workVisc   = clientVisc || autoVisc;
+  const prefBrand  = prefs?.brand ? prefs.brand.toUpperCase().trim() : null;
 
-  const prefBrand = prefs?.brand ? prefs.brand.toUpperCase().trim() : null;
+  console.log(`[matchOil] reqSpecs=[${reqSpecs.join(",")}] visc=${workVisc} vol=${volume}→${target}л hasOem=${hasReqOem}`);
 
-  console.log(`[matchOil] specs=[${reqSpecs.join(",")}] visc=${workVisc} vol=${volume}→${target}л limit=${limit}`);
-
-  // ── Скоринг всех товаров ────────────────────────────────
   const scored = [];
 
   for (const raw of catalog) {
-    // Клонируем и применяем override
-    const { item, excluded } = applyOverride({ ...raw }, reqSpecs);
-    if (excluded) continue;
+    // 1) Enrich from description
+    let allSpecs = enrichFromDescription(raw);
 
-    // Фильтр вязкости (жёсткий)
-    const iv = norm(item.viscosity);
+    // 2) Override — добавляем OEM + проверяем exclude
+    const { addSpecs, excluded } = applyOverride(raw.article, allSpecs, reqSpecs);
+    if (excluded) continue;
+    if (addSpecs.length) allSpecs = [...allSpecs, ...addSpecs];
+
+    // 3) Фильтр вязкости
+    const iv = norm(raw.viscosity);
     if (workVisc && iv && iv !== workVisc) continue;
 
-    // Фильтр: только синтетика (по умолчанию)
-    const ot = (item.oil_type || "").toLowerCase();
+    // 4) Фильтр синтетика
+    const ot = (raw.oil_type || "").toLowerCase();
     if (ot.includes("полусинт") || ot.includes("минерал") || ot === "п/синт" || ot === "п/синтетическое") {
       if (!(prefs?.oilType && !prefs.oilType.toLowerCase().includes("синт"))) continue;
     }
 
-    // Фильтр объёма: целевой ± 0.5л
-    if (item.volume == null || item.volume < 2) continue;
-    if (Math.abs(item.volume - target) > 0.5) continue;
+    // 5) Фильтр объёма
+    if (raw.volume == null || raw.volume < 2) continue;
+    if (Math.abs(raw.volume - target) > 0.5) continue;
 
-    // ── СКОРИНГ ─────────────────────────────────────────
+    // ── СКОРИНГ ──
     let score = 0;
-
-    // Бонус за совпадение вязкости
     if (workVisc && iv === workVisc) score += 30;
 
-    // Матчинг допусков
-    const itemSpecs = (item.all_specs || []).map(norm);
-    let matchCount = 0;
-    let oemMatch   = 0;
-    let specScore  = 0;
+    const itemSpecs = allSpecs.map(norm);
+    let matchCount = 0, oemMatch = 0, specScore = 0;
 
     for (const req of reqSpecs) {
       let bestC = 0;
@@ -268,67 +298,45 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {}, lim
 
     score += specScore;
 
-    // ─────────────────────────────────────────────────────
-    // ФИЛЬТРАЦИЯ ПО ДОПУСКАМ
-    // ─────────────────────────────────────────────────────
-    // Если есть требуемые OEM-допуски и товар не совпал НИ
-    // по одному допуску ВООБЩЕ (даже generic) — отсеиваем.
-    // Но если совпали хотя бы generic (API/ACEA/ILSAC) —
-    // оставляем, просто со штрафом за отсутствие OEM.
-    // ─────────────────────────────────────────────────────
-    if (reqSpecs.length > 0 && matchCount === 0) {
-      continue; // ноль совпадений — отсев
-    }
+    // Ноль совпадений при наличии требований → отсев
+    if (reqSpecs.length > 0 && matchCount === 0) continue;
 
-    // Штраф если есть OEM-требования, но OEM не совпали
-    if (hasReqOem && oemMatch === 0) {
-      score -= 100;
-    }
+    // Штраф за отсутствие OEM
+    if (hasReqOem && oemMatch === 0) score -= 100;
 
-    // Бонус за полноту совпадений
+    // Бонусы
     if (matchCount > 0 && reqSpecs.length > 0) {
       score += (matchCount / reqSpecs.length) * 50;
     }
-
-    // Бонус за OEM-совпадения
     score += oemMatch * 30;
+    if (raw.volume === target) score += 15;
 
-    // Точный объём канистры
-    if (item.volume === target) score += 15;
-
-    // ── БРЕНД-БОНУСЫ (только после прохождения фильтров) ──
-    const ib = (item.brand || "").toUpperCase().trim();
-
+    // Бренд
+    const ib = (raw.brand || "").toUpperCase().trim();
     if (prefBrand && ib === prefBrand) score += 200;
+    if (TOP_BRANDS.includes(ib))      score += 60 - TOP_BRANDS.indexOf(ib) * 10;
+    else if (MID_BRANDS.includes(ib)) score += 25 - MID_BRANDS.indexOf(ib) * 5;
 
-    if (TOP_BRANDS.includes(ib)) {
-      score += 60 - TOP_BRANDS.indexOf(ib) * 10; // AREOL=60, COMMA=50, ZIC=40
-    } else if (MID_BRANDS.includes(ib)) {
-      score += 25 - MID_BRANDS.indexOf(ib) * 5;  // LUKOIL=25, SINTEC=20
-    }
-
-    // Небольшая поправка на цену (дешевле = чуть лучше)
-    score -= (item.price || 0) / 50000;
+    score -= (raw.price || 0) / 50000;
 
     scored.push({
-      ...item,
+      ...raw,
+      all_specs: allSpecs,
       _score:     Math.round(score * 100) / 100,
       _matchCnt:  matchCount,
       _oemMatch:  oemMatch,
-      _specScore: specScore,
     });
   }
 
-  // Сортируем по score desc
   scored.sort((a, b) => b._score - a._score);
 
-  console.log(`[matchOil] ${scored.length} candidates after filtering`);
+  console.log(`[matchOil] ${scored.length} candidates (top5: ${scored.slice(0,5).map(r =>
+    `${r.brand}/${r.article} s=${r._score} m=${r._matchCnt} oem=${r._oemMatch}`).join(", ")})`);
 
-  // ── Витрина: 1 бренд = 1 карточка, каскад по приоритету ──
-  const result     = [];
-  const usedBrands = new Set();
+  // ── Витрина: 1 бренд = 1 карточка, каскад ──
+  const result = [], usedBrands = new Set();
 
-  function pickFromTier(brands) {
+  function pick(brands) {
     for (const item of scored) {
       if (result.length >= limit) return;
       const b = (item.brand || "").toUpperCase().trim();
@@ -339,84 +347,58 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {}, lim
     }
   }
 
-  // Клиент выбрал бренд — он первый
   if (prefBrand) {
-    const pref = scored.find(i => (i.brand || "").toUpperCase().trim() === prefBrand);
-    if (pref) { result.push(pref); usedBrands.add(prefBrand); }
+    const p = scored.find(i => (i.brand||"").toUpperCase().trim() === prefBrand);
+    if (p) { result.push(p); usedBrands.add(prefBrand); }
   }
 
-  // 1) Топ-бренды
-  pickFromTier(TOP_BRANDS);
-  // 2) Средние
-  pickFromTier(MID_BRANDS);
-  // 3) Все остальные
-  pickFromTier(null);
+  pick(TOP_BRANDS);
+  pick(MID_BRANDS);
+  pick(null);
 
-  // Если ещё не хватает — добираем любые (даже повторы бренда)
   if (result.length < limit) {
     for (const item of scored) {
       if (result.length >= limit) break;
-      if (!result.find(r => r.article === item.article)) {
-        result.push(item);
-      }
+      if (!result.find(r => r.article === item.article)) result.push(item);
     }
   }
 
-  console.log(`[matchOil] final ${result.length}: ${result.map(r =>
-    `${r.brand} ${r.article} score=${r._score} match=${r._matchCnt}/${reqSpecs.length} oem=${r._oemMatch}`
+  console.log(`[matchOil] FINAL ${result.length}: ${result.map(r =>
+    `${r.brand} ${r.article} s=${r._score} m=${r._matchCnt}/${reqSpecs.length} oem=${r._oemMatch}`
   ).join(" | ")}`);
 
-  // Формируем ответ
   return result.map(item => {
     let warning = null;
-    if (clientVisc && autoVisc && clientVisc !== autoVisc) {
+    if (clientVisc && autoVisc && clientVisc !== autoVisc)
       warning = "вязкость не рекомендована производителем";
-    }
-    if (hasReqOem && item._oemMatch === 0) {
+    if (hasReqOem && item._oemMatch === 0)
       warning = "требует перепроверки допусков";
-    }
     return formatResult(item, warning);
   });
 }
 
-/* ══════════════════════════════════════════════════════════════
-   ФОРМАТИРОВАНИЕ
-   ══════════════════════════════════════════════════════════════ */
 function formatResult(item, warning = null) {
   return {
-    article:     item.article,
-    sku:         item.sku,
-    brand:       item.brand,
-    description: item.description,
-    price:       item.price,
-    stock:       item.stock,
-    volume:      item.volume,
-    viscosity:   item.viscosity,
-    oil_type:    item.oil_type,
+    article: item.article, sku: item.sku, brand: item.brand,
+    description: item.description, price: item.price, stock: item.stock,
+    volume: item.volume, viscosity: item.viscosity, oil_type: item.oil_type,
     warning,
-    specs: {
-      api:   item.api,
-      ilsac: item.ilsac,
-      acea:  item.acea,
-      oem:   item.oem,
-    },
-    _score:     item._score,
-    _matchCnt:  item._matchCnt,
-    _oemMatch:  item._oemMatch,
+    specs: { api: item.api, ilsac: item.ilsac, acea: item.acea, oem: item.oem },
+    _score: item._score, _matchCnt: item._matchCnt, _oemMatch: item._oemMatch,
   };
 }
 
 /* ══════════════════════════════════════════════════════════════
-   НОРМАЛИЗАЦИЯ КАТАЛОГА XLSX → JSON
+   XLSX → JSON
    ══════════════════════════════════════════════════════════════ */
 async function normalizeOilCatalog(xlsxPath = path.join(__dirname, "main.xlsx")) {
   console.log("[oils] reading", xlsxPath);
-  const buf    = fs.readFileSync(xlsxPath);
-  const zip    = await JSZip.loadAsync(buf);
-  const ssXml  = await zip.file("xl/sharedStrings.xml").async("string");
+  const buf = fs.readFileSync(xlsxPath);
+  const zip = await JSZip.loadAsync(buf);
+  const ssXml = await zip.file("xl/sharedStrings.xml").async("string");
   const strings = parseSharedStrings(ssXml);
-  const shXml  = await zip.file("xl/worksheets/sheet1.xml").async("string");
-  const rows   = parseSheet(shXml, strings);
+  const shXml = await zip.file("xl/worksheets/sheet1.xml").async("string");
+  const rows = parseSheet(shXml, strings);
   const catalog = rows.map(normalizeRow).filter(r => r !== null);
   fs.writeFileSync(CATALOG_PATH, JSON.stringify(catalog, null, 2), "utf-8");
   console.log(`[oils] normalized ${catalog.length} items → ${CATALOG_PATH}`);
@@ -424,69 +406,51 @@ async function normalizeOilCatalog(xlsxPath = path.join(__dirname, "main.xlsx"))
 }
 
 function normalizeRow(cells) {
-  const brand   = clean(cells["A"]);
-  const article = clean(cells["B"]);
-  const stock   = parseInt(cells["F"]) || 0;
+  const brand = clean(cells["A"]), article = clean(cells["B"]);
+  const stock = parseInt(cells["F"]) || 0;
   if (!article || stock <= 0) return null;
-
-  const volume    = parseFloat(clean(cells["K"])) || null;
-  const viscosity = clean(cells["\\"]);
-  const api       = splitSpecs(cells["V"]);
-  const ilsac     = splitSpecs(cells["W"]);
-  const acea      = splitSpecs(cells["X"]);
-  const oem       = splitSpecs(
-    [cells["Y"], cells["Z"], cells["["], cells["^"]].join(";")
-  );
-  const allSpecs  = [...api, ...ilsac, ...acea, ...oem];
-
+  const api = splitSpecs(cells["V"]), ilsac = splitSpecs(cells["W"]),
+        acea = splitSpecs(cells["X"]),
+        oem = splitSpecs([cells["Y"],cells["Z"],cells["["],cells["^"]].join(";"));
   return {
-    brand, article,
-    sku:         clean(cells["D"]),
-    description: clean(cells["C"]),
-    price:       parseFloat(cells["G"]) || 0,
-    stock, volume, viscosity,
-    oil_type:    clean(cells["U"]),
+    brand, article, sku: clean(cells["D"]), description: clean(cells["C"]),
+    price: parseFloat(cells["G"]) || 0, stock,
+    volume: parseFloat(clean(cells["K"])) || null,
+    viscosity: clean(cells["\\"]),
+    oil_type: clean(cells["U"]),
     api, ilsac, acea, oem,
-    all_specs: allSpecs,
+    all_specs: [...api, ...ilsac, ...acea, ...oem],
   };
 }
 
 function parseSharedStrings(xml) {
   const doc = new DOMParser().parseFromString(xml, "application/xml");
   const sis = doc.getElementsByTagName("si");
-  const result = [];
+  const r = [];
   for (let i = 0; i < sis.length; i++) {
     const ts = sis[i].getElementsByTagName("t");
-    let text = "";
-    for (let j = 0; j < ts.length; j++) text += ts[j].textContent || "";
-    result.push(text);
+    let t = "";
+    for (let j = 0; j < ts.length; j++) t += ts[j].textContent || "";
+    r.push(t);
   }
-  return result;
+  return r;
 }
 
 function parseSheet(xml, strings) {
-  const doc    = new DOMParser().parseFromString(xml, "application/xml");
+  const doc = new DOMParser().parseFromString(xml, "application/xml");
   const rowEls = doc.getElementsByTagName("row");
-  const rows   = [];
+  const rows = [];
   for (let i = 0; i < rowEls.length; i++) {
     const cells = {};
-    const cs    = rowEls[i].getElementsByTagName("c");
+    const cs = rowEls[i].getElementsByTagName("c");
     for (let j = 0; j < cs.length; j++) {
-      const c   = cs[j];
-      const col = c.getAttribute("r").replace(/[0-9]/g, "");
-      const t   = c.getAttribute("t");
-      const vEl = c.getElementsByTagName("v")[0];
-      let val   = "";
-      if (vEl) {
-        val = t === "s"
-          ? (strings[parseInt(vEl.textContent.trim())] ?? "")
-          : (vEl.textContent || "");
-      }
-      cells[col] = val;
+      const c = cs[j], col = c.getAttribute("r").replace(/[0-9]/g, "");
+      const t = c.getAttribute("t"), vEl = c.getElementsByTagName("v")[0];
+      cells[col] = vEl ? (t === "s" ? (strings[parseInt(vEl.textContent.trim())] ?? "") : (vEl.textContent || "")) : "";
     }
     rows.push(cells);
   }
   return rows;
 }
 
-module.exports = { normalizeOilCatalog, matchOil, resetOverrideCache };
+module.exports = { normalizeOilCatalog, matchOil };
