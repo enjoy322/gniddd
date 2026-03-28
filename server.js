@@ -66,6 +66,15 @@ function cleanupFile(path) {
 // ─────────────────────────────────────────────
 // CAR INFO (внутренний вызов, без HTTP к себе)
 // ─────────────────────────────────────────────
+
+// Специальный класс чтобы отличать "не найдено" от сетевых ошибок
+class CarNotFoundError extends Error {
+  constructor(vin) {
+    super(`Car not found for VIN: ${vin}`);
+    this.name = "CarNotFoundError";
+  }
+}
+
 async function fetchCarInfo(vin) {
   const response = await axios.get(UPEC_URL, {
     params: {
@@ -75,8 +84,16 @@ async function fetchCarInfo(vin) {
       source:        "vin"
     },
     headers:    { "User-Agent": "Mozilla/5.0" },
-    httpsAgent
+    httpsAgent,
+    // Не бросаем исключение на 404/400 — обработаем сами
+    validateStatus: status => status < 500
   });
+
+  // API вернул ошибку — машина не найдена (грузовик, мото, неверный VIN и т.д.)
+  if (response.status !== 200 || !response.data?.brand) {
+    throw new CarNotFoundError(vin);
+  }
+
   return normalizeCar(response.data);
 }
 
@@ -319,6 +336,9 @@ app.get("/car-info/:vin", async (req, res) => {
     const car = await fetchCarInfo(req.params.vin);
     res.json(car);
   } catch (e) {
+    if (e.name === "CarNotFoundError") {
+      return res.status(404).json({ error: "not_found", message: "Автомобиль не найден" });
+    }
     console.error("[car-info] error:", e.message);
     res.status(500).json({ error: e.message });
   }
@@ -328,7 +348,18 @@ app.get("/car-info/:vin", async (req, res) => {
 app.get("/oil/:vin", async (req, res) => {
   try {
     // Грузим данные об авто напрямую (без HTTP к себе)
-    const car  = await fetchCarInfo(req.params.vin);
+    let car;
+    try {
+      car = await fetchCarInfo(req.params.vin);
+    } catch (e) {
+      if (e.name === "CarNotFoundError") {
+        console.log(`[oil] car not found for VIN: ${req.params.vin}`);
+        // Возвращаем 200 с понятным source — фронт не ломается, polling продолжает работать
+        return res.json({ car: null, url: null, source: "car_not_found", oil: null });
+      }
+      throw e;
+    }
+
     const tree = require("./tree.json");
 
     console.log(`[oil] ${car.brand} ${car.model} ${car.year} engine=${car.engine.code}`);

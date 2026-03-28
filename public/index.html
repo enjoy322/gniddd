@@ -417,6 +417,31 @@
       .main { grid-template-columns: 1fr; padding: 12px 14px 20px; }
       #vinInput { width: 150px; }
     }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #1a1917;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 10px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      z-index: 999;
+      opacity: 0;
+      transition: transform .25s ease, opacity .25s ease;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
   </style>
 </head>
 <body>
@@ -507,6 +532,7 @@
   </div>
 
   <div id="history" style="display:none"></div>
+  <div class="toast" id="toast"></div>
 
   <script>
     // ── STATE ─────────────────────────────────────────────────
@@ -597,12 +623,22 @@
       fd.append('image', file);
 
       try {
-        await fetch('/upload/' + sessionId, { method: 'POST', body: fd });
-        // Результат придёт через polling /data/:session
+        const res  = await fetch('/upload/' + sessionId, { method: 'POST', body: fd });
+        const data = await res.json();
+
+        if (!data.vin) {
+          setError(carInfo, 'VIN не найден на фото');
+          setError(liquids, 'Попробуйте сфотографировать чётче');
+          showToast('VIN не удалось распознать — попробуйте ещё раз');
+          fileInput.value = '';
+          fileName.textContent = '';
+          document.getElementById('lblFile').classList.remove('active');
+        }
+        // Если VIN найден — результат придёт через polling /data/:session
       } catch (e) {
         console.error('upload error', e);
-        setError(carInfo, 'Ошибка загрузки');
-        setError(liquids, 'Ошибка загрузки');
+        setError(carInfo, 'Ошибка отправки');
+        setError(liquids, 'Ошибка отправки');
       } finally {
         loading = false;
         btnSend.disabled = false;
@@ -650,6 +686,10 @@
       try {
         const res  = await fetch('/car-info/' + vin);
         const data = await res.json();
+        if (res.status === 404 || data.error === 'not_found') {
+          setError(carInfo, 'Автомобиль не найден в базе');
+          return;
+        }
         renderCar(data);
       } catch (e) {
         console.error('car-info error', e);
@@ -695,6 +735,12 @@
 
         if (localVin !== currentVin) return; // VIN сменился — игнорируем
 
+        // Авто не найдено в базе (грузовик, мото, неверный VIN)
+        if (data.source === 'car_not_found') {
+          setError(liquids, 'Нет данных — возможно это не легковой автомобиль');
+          return;
+        }
+
         const oil       = data.oil;
         const sourceUrl = data?.url || null;
 
@@ -706,7 +752,6 @@
         const volume = oil.volume;
         const best   = oil.oil?.best        || [];
         const alt    = oil.oil?.alternative || [];
-        const sourceType = data?.source;
 
         function renderItems(arr) {
           if (!arr.length) return '<p style="color:var(--soft);font-size:13px">—</p>';
@@ -781,6 +826,15 @@
         '</div>'
       );
     }
+
+    // ── TOAST ─────────────────────────────────────────────────
+    function showToast(msg, duration = 3500) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      setTimeout(() => el.classList.remove('show'), duration);
+    }
+
   </script>
 </body>
 </html>
