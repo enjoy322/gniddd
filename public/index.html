@@ -451,6 +451,52 @@
       .rec-grid { grid-template-columns: 1fr; }
       #vinInput { width: 150px; }
     }
+
+    /* ── ПОПАП НАСТРОЕК ── */
+    .prefs-btn {
+      display: flex; align-items: center; gap: 5px;
+      padding: 0 12px; height: 36px; border-radius: var(--radius);
+      border: 1px solid var(--border); background: var(--surface);
+      color: var(--muted); font-size: 12px; font-weight: 500;
+      cursor: pointer; transition: all .15s; white-space: nowrap; flex-shrink: 0;
+    }
+    .prefs-btn:hover { border-color: var(--border2); color: var(--text); }
+    .prefs-btn.active { border-color: var(--accent); color: var(--accent); background: #f0f0ee; }
+    .prefs-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4); z-index: 100;
+      align-items: flex-start; justify-content: center; padding-top: 80px;
+    }
+    .prefs-overlay.open { display: flex; }
+    .prefs-popup {
+      background: var(--surface); border-radius: 14px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+      padding: 24px; width: 340px; max-width: 90vw;
+    }
+    .prefs-title { font-size: 15px; font-weight: 600; margin-bottom: 18px; color: var(--text); }
+    .prefs-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 500; display: block; }
+    .prefs-select {
+      width: 100%; padding: 8px 10px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--surface2);
+      font-size: 13px; color: var(--text); margin-bottom: 16px; cursor: pointer;
+    }
+    .prefs-actions { display: flex; gap: 8px; }
+    .prefs-save {
+      flex: 1; padding: 9px; border-radius: 8px;
+      background: var(--accent); color: #fff;
+      font-size: 13px; font-weight: 600; border: none; cursor: pointer;
+    }
+    .prefs-reset {
+      padding: 9px 14px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--surface);
+      font-size: 13px; color: var(--muted); cursor: pointer;
+    }
+    .oil-card-warning {
+      font-size: 11px; color: #92400e; background: #fef3c7;
+      border-radius: 5px; padding: 4px 10px; margin: 6px 14px 0;
+    }
+    .oil-card-logo { height: 18px; width: auto; max-width: 72px; object-fit: contain; object-position: left center; opacity:.85; flex-shrink:0; display:block; }
+    .oil-card-logo.hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -493,6 +539,10 @@
         <polygon points="22 2 15 22 11 13 2 9 22 2"/>
       </svg>
       Отправить
+    </button>
+    <button id="prefsBtn" class="prefs-btn">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      Настройки
     </button>
   </div>
 
@@ -627,16 +677,14 @@
         const res  = await fetch('/upload/' + sessionId, { method: 'POST', body: fd });
         const data = await res.json();
 
-        // ВСЕГДА сбрасываем loading — иначе polling заблокирован навсегда
-        loading = false;
-
         if (!data.vin) {
+          // Сервер уже сделал 3 попытки — всё равно не нашёл
+          loading = false; // сбрасываем — следующая загрузка должна работать
           setError(carInfo, 'VIN не найден на фото');
           setError(liquids, 'Попробуйте сделать фото чётче или ввести вручную');
           showToast('VIN не удалось распознать после 3 попыток');
         }
-        // Если VIN найден — сразу триггерим poll не ждём 3 сек
-        if (data.vin) poll();
+        // Если VIN найден — polling подхватит и загрузит данные
       } catch (e) {
         loading = false;
         setError(carInfo, 'Ошибка отправки');
@@ -718,7 +766,11 @@
       setLoading(liquids);
 
       try {
-        const res  = await fetch('/oil/' + vin);
+        const _p = new URLSearchParams();
+        if (userPrefs.viscosity) _p.set('viscosity', userPrefs.viscosity);
+        if (userPrefs.brand)     _p.set('brand', userPrefs.brand);
+        const _qs = _p.toString() ? '?' + _p.toString() : '';
+        const res  = await fetch('/oil/' + vin + _qs);
         const data = await res.json();
 
         if (localVin !== currentVin) return;
@@ -829,6 +881,7 @@
         '</div>' +
 
         // Тело: описание + чипы
+        (r.warning ? '<div class="oil-card-warning">⚠ ' + esc(r.warning) + '</div>' : '') +
         '<div class="oil-card-body">' +
           (r.description
             ? '<div class="oil-card-desc">' + esc(r.description) + '</div>'
@@ -924,6 +977,34 @@
       return '/logo/' + file + '.webp';
     }
 
+    // ── НАСТРОЙКИ ────────────────────────────────────────────
+    let userPrefs = { viscosity: null, brand: null };
+
+    (function initPrefs() {
+      const btn     = document.getElementById('prefsBtn');
+      const overlay = document.getElementById('prefsOverlay');
+      const selVisc = document.getElementById('prefsVisc');
+      const selBrand= document.getElementById('prefsBrand');
+
+      btn.addEventListener('click', () => overlay.classList.toggle('open'));
+      overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+
+      document.getElementById('prefsSave').addEventListener('click', () => {
+        userPrefs.viscosity = selVisc.value  || null;
+        userPrefs.brand     = selBrand.value || null;
+        overlay.classList.remove('open');
+        btn.classList.toggle('active', !!(userPrefs.viscosity || userPrefs.brand));
+        if (currentVin) loadLiquids(currentVin);
+      });
+      document.getElementById('prefsReset').addEventListener('click', () => {
+        userPrefs = { viscosity: null, brand: null };
+        selVisc.value = ''; selBrand.value = '';
+        btn.classList.remove('active');
+        overlay.classList.remove('open');
+        if (currentVin) loadLiquids(currentVin);
+      });
+    })();
+
     // ── КОПИРОВАНИЕ АРТИКУЛА ──────────────────────────────────
     function copyArticle(el, article) {
       navigator.clipboard.writeText(article).then(() => {
@@ -952,5 +1033,74 @@
       setTimeout(() => el.classList.remove('show'), duration);
     }
   </script>
+  <!-- Попап настроек -->
+  <div class="prefs-overlay" id="prefsOverlay">
+    <div class="prefs-popup">
+      <div class="prefs-title">Предпочтения клиента</div>
+
+      <label class="prefs-label" for="prefsVisc">Вязкость масла</label>
+      <select class="prefs-select" id="prefsVisc">
+        <option value="">— Авто (по допускам) —</option>
+        <option>5W-30</option>
+        <option>5W-40</option>
+        <option>10W-40</option>
+        <option>0W-20</option>
+        <option>0W-30</option>
+        <option>0W-40</option>
+        <option>10W-30</option>
+        <option>15W-40</option>
+      </select>
+
+      <label class="prefs-label" for="prefsBrand">Предпочтительный бренд</label>
+      <select class="prefs-select" id="prefsBrand">
+        <option value="">— Любой —</option>
+        <option>AREOL</option>
+        <option>COMMA</option>
+        <option>ZIC</option>
+        <option>LIQUI MOLY</option>
+        <option>CASTROL</option>
+        <option>MOBIL</option>
+        <option>SHELL</option>
+        <option>TOTACHI</option>
+        <option>SINTEC</option>
+        <option>LUKOIL</option>
+        <option>BARDAHL</option>
+        <option>MANNOL</option>
+        <option>REPSOL</option>
+        <option>HYUNDAI XTEER</option>
+      </select>
+
+      <div class="prefs-actions">
+        <button class="prefs-save" id="prefsSave">Применить</button>
+        <button class="prefs-reset" id="prefsReset">Сбросить</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="prefs-overlay" id="prefsOverlay">
+    <div class="prefs-popup">
+      <div class="prefs-title">Предпочтения клиента</div>
+      <label class="prefs-label">Вязкость масла</label>
+      <select class="prefs-select" id="prefsVisc">
+        <option value="">— Авто (по допускам) —</option>
+        <option>5W-30</option><option>5W-40</option><option>10W-40</option>
+        <option>0W-20</option><option>0W-30</option><option>0W-40</option>
+        <option>10W-30</option><option>15W-40</option>
+      </select>
+      <label class="prefs-label">Предпочтительный бренд</label>
+      <select class="prefs-select" id="prefsBrand">
+        <option value="">— Любой —</option>
+        <option>AREOL</option><option>COMMA</option><option>ZIC</option>
+        <option>LIQUI MOLY</option><option>CASTROL</option><option>MOBIL</option>
+        <option>SHELL</option><option>TOTACHI</option><option>SINTEC</option>
+        <option>LUKOIL</option><option>BARDAHL</option><option>MANNOL</option>
+        <option>REPSOL</option><option>HYUNDAI XTEER</option>
+      </select>
+      <div class="prefs-actions">
+        <button class="prefs-save" id="prefsSave">Применить</button>
+        <button class="prefs-reset" id="prefsReset">Сбросить</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
