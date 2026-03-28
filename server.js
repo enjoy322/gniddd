@@ -5,10 +5,9 @@ const fs      = require("fs");
 const axios   = require("axios");
 const https   = require("https");
 const cheerio = require("cheerio");
-const { matchOil } = require("./oils");
-
 
 const { parseEngineBlocks, findEngineBlock } = require("./utils/parseOil");
+const { matchOil } = require("./oils");
 
 const app = express();
 app.use(express.json());
@@ -346,18 +345,38 @@ app.get("/car-info/:vin", async (req, res) => {
   }
 });
 
+// ── Собирает рекомендации из каталога по данным масла ──
+function buildRecommendations(oil, car) {
+  try {
+    const specs     = [];
+    const oilData   = oil?.oil || {};
+    const bestItems = oilData?.best || [];
+
+    for (const item of bestItems) {
+      specs.push(...(item.specs     || []));
+      specs.push(...(item.viscosity || []));
+    }
+
+    const viscosity    = bestItems[0]?.viscosity?.[0] || null;
+    const engineVolume = car?.engine?.volume           || null;
+
+    return matchOil({ specs, volume: engineVolume, viscosity });
+  } catch (e) {
+    console.error("[oil] matchOil error:", e.message);
+    return [];
+  }
+}
+
 // Масло по VIN — основной эндпоинт
 app.get("/oil/:vin", async (req, res) => {
   try {
-    // Грузим данные об авто напрямую (без HTTP к себе)
     let car;
     try {
       car = await fetchCarInfo(req.params.vin);
     } catch (e) {
       if (e.name === "CarNotFoundError") {
         console.log(`[oil] car not found for VIN: ${req.params.vin}`);
-        // Возвращаем 200 с понятным source — фронт не ломается, polling продолжает работать
-        return res.json({ car: null, url: null, source: "car_not_found", oil: null });
+        return res.json({ car: null, url: null, source: "car_not_found", oil: null, recommendations: [] });
       }
       throw e;
     }
@@ -373,17 +392,17 @@ app.get("/oil/:vin", async (req, res) => {
       console.log("[oil] no url → fallbackGlobal");
       const gpt = await fallbackGlobal(car);
 
+      const oil = gpt?.found ? {
+        volume: gpt.volume || null,
+        oil: { best: gpt.best || [], alternative: gpt.alternative || [] }
+      } : null;
+
       return res.json({
         car,
-        url:    null,
-        source: gpt?.found ? "gpt_global" : "not_found",
-        oil:    gpt?.found ? {
-          volume: gpt.volume || null,
-          oil: {
-            best:        gpt.best        || [],
-            alternative: gpt.alternative || []
-          }
-        } : null
+        url:             null,
+        source:          gpt?.found ? "gpt_global" : "not_found",
+        oil,
+        recommendations: buildRecommendations(oil, car)
       });
     }
 
@@ -394,7 +413,10 @@ app.get("/oil/:vin", async (req, res) => {
 
     if (engine) {
       console.log("[oil] found via parser");
-      return res.json({ car, url, source: "parsed", oil: engine });
+      return res.json({
+        car, url, source: "parsed", oil: engine,
+        recommendations: buildRecommendations(engine, car)
+      });
     }
 
     // ── Парсер не нашёл движок → GPT по HTML ──
@@ -402,17 +424,13 @@ app.get("/oil/:vin", async (req, res) => {
     const gptPage = await fallbackFromPage(url, car);
 
     if (gptPage?.found) {
+      const oil = {
+        volume: null,
+        oil: { best: gptPage.best || [], alternative: gptPage.alternative || [] }
+      };
       return res.json({
-        car,
-        url,
-        source: "gpt_html",
-        oil: {
-          volume: null,
-          oil: {
-            best:        gptPage.best        || [],
-            alternative: gptPage.alternative || []
-          }
-        }
+        car, url, source: "gpt_html", oil,
+        recommendations: buildRecommendations(oil, car)
       });
     }
 
@@ -421,22 +439,18 @@ app.get("/oil/:vin", async (req, res) => {
     const gptGlobal = await fallbackGlobal(car);
 
     if (gptGlobal?.found) {
+      const oil = {
+        volume: gptGlobal.volume || null,
+        oil: { best: gptGlobal.best || [], alternative: gptGlobal.alternative || [] }
+      };
       return res.json({
-        car,
-        url,
-        source: "gpt_global",
-        oil: {
-          volume: gptGlobal.volume || null,
-          oil: {
-            best:        gptGlobal.best        || [],
-            alternative: gptGlobal.alternative || []
-          }
-        }
+        car, url, source: "gpt_global", oil,
+        recommendations: buildRecommendations(oil, car)
       });
     }
 
     // ── Ничего не нашли ──
-    res.json({ car, url, source: "not_found", oil: null });
+    res.json({ car, url, source: "not_found", oil: null, recommendations: [] });
 
   } catch (e) {
     console.error("[oil] error:", e.message);
