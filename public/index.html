@@ -412,7 +412,13 @@
     </div>
     <div class="rec-grid" id="recGrid"></div>
   </div>
-
+<div class="rec-section" id="filterSection">
+  <div class="rec-hd">
+    <span class="rec-hd-ico">🔩</span>
+    <span class="rec-hd-ttl">Оригинальные артикулы</span>
+  </div>
+  <div id="filterGrid"></div>
+</div>
   <div class="toast" id="toast"></div>
 
   <script>
@@ -564,7 +570,36 @@
         (name ? '<div class="car-name">' + name + '</div>' : '') +
         '<div>' + fields.map(f => '<div class="car-field"><span class="cf-key">' + f.k + ':</span><span class="cf-val">' + f.v + '</span></div>').join('') + '</div>';
     }
+function renderFilters(filters) {
+  const sec  = document.getElementById('filterSection');
+  const grid = document.getElementById('filterGrid');
+  if (!filters) { sec.classList.remove('visible'); return; }
 
+  const GROUPS = [
+    { key: 'oil_filter',   icon: '🛢️', label: 'Масляный фильтр' },
+    { key: 'air_filter',   icon: '💨', label: 'Воздушный фильтр' },
+    { key: 'cabin_filter', icon: '🌬️', label: 'Салонный фильтр' },
+    { key: 'spark_plug',   icon: '⚡', label: 'Свечи зажигания' },
+  ];
+
+  const rows = GROUPS.map(g => {
+    const items = filters[g.key] || [];
+    if (!items.length) return '';
+    return `<div class="filter-group">
+      <div class="filter-group-hd">${g.icon} ${g.label}</div>
+      ${items.map(it => `
+        <div class="filter-item">
+          <span class="filter-code" onclick="copyArticle(this,'${esc(it.partCode)}')">${esc(it.partCode)}</span>
+          ${it.count > 1 ? `<span class="filter-count">× ${it.count}</span>` : ''}
+          ${it.comment ? `<span class="filter-comment">${esc(it.comment)}</span>` : ''}
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+
+  if (!rows) { sec.classList.remove('visible'); return; }
+  grid.innerHTML = rows;
+  sec.classList.add('visible');
+}
     // ── OIL — два столбца: GPT основной, источник справа ──
     async function loadLiquids(vin) {
       const localVin = vin;
@@ -664,6 +699,7 @@
             : '');
 
         renderRec(recs);
+        renderFilters(data.filters);
 
       } catch (e) {
         if (localVin !== currentVin) return;

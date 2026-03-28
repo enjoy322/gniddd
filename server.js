@@ -1,4 +1,5 @@
 "use strict";
+const { getOriginalFilters } = require("./utils/getFilters");
 const express = require("express");
 const multer  = require("multer");
 const fs      = require("fs");
@@ -127,7 +128,7 @@ app.get("/oil/:vin", async (req, res) => {
     const tree = require("./tree.json");
     console.log(`[oil] ${car.brand} ${car.model} ${car.year} engine=${car.engine.code}`);
 
-    const filtersPromise = Promise.resolve(findFilters(car));
+    const filtersPromise = getOriginalFilters(car);
 
     const url = await resolveUrl(car, tree);
 
@@ -146,6 +147,14 @@ app.get("/oil/:vin", async (req, res) => {
         recommendations: buildRecommendations(oil, prefs),
         filters
       });
+      // После каждого fallback добавь:
+console.log("[DEBUG oil volume]", {
+  source: "gpt_global",           // или gpt_html, parsed
+  gpt_volume: gptGlobal.volume,   // что GPT вернул
+  car_volume: car.engine.volume,  // что пришло из UPEC API
+  gpt_best: JSON.stringify(gptGlobal.best),
+  gpt_alt:  JSON.stringify(gptGlobal.alternative),
+});
     }
 
     console.log(`[oil] parsing ${url}`);
@@ -164,6 +173,14 @@ app.get("/oil/:vin", async (req, res) => {
         recommendations: buildRecommendations(engine, prefs),
         filters
       });
+      // После каждого fallback добавь:
+console.log("[DEBUG oil volume]", {
+  source: "gpt_global",           // или gpt_html, parsed
+  gpt_volume: gptGlobal.volume,   // что GPT вернул
+  car_volume: car.engine.volume,  // что пришло из UPEC API
+  gpt_best: JSON.stringify(gptGlobal.best),
+  gpt_alt:  JSON.stringify(gptGlobal.alternative),
+});
     }
 
     console.log("[oil] engine not found → fallbackFromPage");
@@ -179,7 +196,16 @@ app.get("/oil/:vin", async (req, res) => {
         oil_source: null,   // GPT обработал HTML — отдельного "источника" нет
         recommendations: buildRecommendations(oil, prefs),
         filters
-      });
+        
+      })
+      ;// После каждого fallback добавь:
+console.log("[DEBUG oil volume]", {
+  source: "gpt_global",           // или gpt_html, parsed
+  gpt_volume: gptGlobal.volume,   // что GPT вернул
+  car_volume: car.engine.volume,  // что пришло из UPEC API
+  gpt_best: JSON.stringify(gptGlobal.best),
+  gpt_alt:  JSON.stringify(gptGlobal.alternative),
+});
     }
 
     console.log("[oil] page fallback failed → fallbackGlobal");
@@ -195,6 +221,14 @@ app.get("/oil/:vin", async (req, res) => {
         recommendations: buildRecommendations(oil, prefs),
         filters
       });
+      // После каждого fallback добавь:
+console.log("[DEBUG oil volume]", {
+  source: "gpt_global",           // или gpt_html, parsed
+  gpt_volume: gptGlobal.volume,   // что GPT вернул
+  car_volume: car.engine.volume,  // что пришло из UPEC API
+  gpt_best: JSON.stringify(gptGlobal.best),
+  gpt_alt:  JSON.stringify(gptGlobal.alternative),
+});
     }
 
     const filters = await filtersPromise;
