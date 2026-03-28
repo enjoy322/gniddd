@@ -627,14 +627,16 @@
         const res  = await fetch('/upload/' + sessionId, { method: 'POST', body: fd });
         const data = await res.json();
 
+        // ВСЕГДА сбрасываем loading — иначе polling заблокирован навсегда
+        loading = false;
+
         if (!data.vin) {
-          // Сервер уже сделал 3 попытки — всё равно не нашёл
-          loading = false; // сбрасываем — следующая загрузка должна работать
           setError(carInfo, 'VIN не найден на фото');
           setError(liquids, 'Попробуйте сделать фото чётче или ввести вручную');
           showToast('VIN не удалось распознать после 3 попыток');
         }
-        // Если VIN найден — polling подхватит и загрузит данные
+        // Если VIN найден — сразу триггерим poll не ждём 3 сек
+        if (data.vin) poll();
       } catch (e) {
         loading = false;
         setError(carInfo, 'Ошибка отправки');
