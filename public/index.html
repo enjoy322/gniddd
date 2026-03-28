@@ -37,7 +37,6 @@
       min-height: 100vh;
     }
 
-    /* ── HEADER ── */
     header {
       background: var(--surface);
       border-bottom: 1px solid var(--border);
@@ -60,11 +59,9 @@
       border-radius: 6px; padding: 4px 11px;
       font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap;
     }
-
     .session-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
     .header-gap  { flex: 1; }
 
-    /* ── INPUT BAR ── */
     .input-bar {
       background: var(--surface); border-bottom: 1px solid var(--border);
       padding: 10px 24px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -76,11 +73,7 @@
       overflow: hidden; background: var(--surface);
       transition: border-color .15s, box-shadow .15s;
     }
-
-    .vin-group:focus-within {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(0,0,0,0.08);
-    }
+    .vin-group:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,0,0,0.08); }
 
     #vinInput {
       border: none; outline: none; background: transparent;
@@ -88,7 +81,6 @@
       font-size: 14px; font-weight: 600; letter-spacing: 1.5px;
       padding: 9px 14px; width: 210px; text-transform: uppercase;
     }
-
     #vinInput::placeholder { font-weight: 400; letter-spacing: 0; color: var(--soft); text-transform: none; }
 
     .vin-divider { width: 1px; background: var(--border); margin: 5px 0; }
@@ -101,119 +93,62 @@
       transition: opacity .15s, background .15s, border-color .15s, color .15s;
       white-space: nowrap;
     }
-
     .btn-ok { background: var(--accent); color: #fff; border-radius: 0; padding: 0 16px; }
     .btn-ok:hover { background: var(--accent-hover); }
-
     .btn-outline { background: var(--surface); border: 1px solid var(--border2); color: var(--muted); }
     .btn-outline:hover { border-color: var(--accent); color: var(--accent); background: #f5f5f5; }
     .btn-outline.active { border-color: var(--accent); color: var(--accent); }
     .btn:disabled { opacity: .45; pointer-events: none; }
 
     .bar-sep { width: 1px; height: 26px; background: var(--border); flex-shrink: 0; }
-
     #fileInput { display: none; }
+    .filename-pill { font-size: 12px; color: var(--soft); max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-    .filename-pill {
-      font-size: 12px; color: var(--soft);
-      max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
-
-    /* ── VIN ROW ── */
     .vin-row { padding: 10px 24px 0; display: none; }
-
     .vin-row-inner {
       background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--radius); padding: 10px 18px;
       display: flex; align-items: center; gap: 12px;
       box-shadow: var(--shadow-sm);
     }
-
     .vin-lbl { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--soft); flex-shrink: 0; }
-
     .vin-val {
       font-size: 17px; font-weight: 700; letter-spacing: 2.5px; color: var(--text);
       cursor: pointer; border-radius: 5px; padding: 2px 6px; margin: -2px -6px;
-      transition: background .15s, color .15s;
-      user-select: all;
+      transition: background .15s, color .15s; user-select: all;
     }
     .vin-val:hover { background: #f0f0ee; color: var(--blue); }
-    .vin-val:active { background: #e0eeff; }
-
     .vin-gap { flex: 1; }
-
-    /* ── VIN EXTERNAL BUTTONS ── */
-    .vin-ext-btns {
-      display: flex; gap: 6px; align-items: center;
-    }
-
+    .vin-ext-btns { display: flex; gap: 6px; align-items: center; }
     .ext-btn {
       display: inline-flex; align-items: center; gap: 5px;
-      padding: 5px 12px; border-radius: 7px;
-      border: 1px solid var(--border2);
-      background: var(--surface2);
-      font-size: 12px; font-weight: 600;
+      padding: 5px 12px; border-radius: 7px; border: 1px solid var(--border2);
+      background: var(--surface2); font-size: 12px; font-weight: 600;
       color: var(--muted); cursor: pointer; text-decoration: none;
       transition: all .15s; white-space: nowrap;
     }
-    .ext-btn:hover {
-      border-color: var(--accent); color: var(--accent);
-      background: #f5f5f5;
-    }
-    .ext-btn svg { flex-shrink: 0; }
+    .ext-btn:hover { border-color: var(--accent); color: var(--accent); background: #f5f5f5; }
 
-    /* ── PREFS ROW (под VIN) ── */
-    .prefs-row {
-      padding: 10px 24px 0;
-      display: none;
-    }
+    .prefs-row { padding: 10px 24px 0; display: none; }
     .prefs-row.visible { display: block; }
-
     .prefs-row-inner {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 10px 18px;
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      flex-wrap: wrap;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 10px 18px;
+      display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
       box-shadow: var(--shadow-sm);
     }
-
-    .pref-group {
-      display: flex; align-items: center; gap: 8px;
-    }
-
-    .pref-cb {
-      width: 16px; height: 16px; cursor: pointer;
-      accent-color: var(--accent);
-      flex-shrink: 0;
-    }
-
-    .pref-label {
-      font-size: 12px; font-weight: 600; color: var(--muted);
-      cursor: pointer; white-space: nowrap;
-    }
-
+    .pref-group { display: flex; align-items: center; gap: 8px; }
+    .pref-cb { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); flex-shrink: 0; }
+    .pref-label { font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap; }
     .pref-select {
-      padding: 5px 10px; border-radius: 7px;
-      border: 1px solid var(--border2);
-      background: var(--surface2);
-      font-size: 12px; font-weight: 600;
-      color: var(--text); cursor: pointer;
-      transition: border-color .15s, opacity .15s;
-      outline: none;
+      padding: 5px 10px; border-radius: 7px; border: 1px solid var(--border2);
+      background: var(--surface2); font-size: 12px; font-weight: 600;
+      color: var(--text); cursor: pointer; transition: border-color .15s, opacity .15s; outline: none;
     }
     .pref-select:focus { border-color: var(--accent); }
     .pref-select:disabled { opacity: .4; pointer-events: none; }
+    .pref-hint { font-size: 11px; color: var(--soft); margin-left: auto; }
 
-    .pref-hint {
-      font-size: 11px; color: var(--soft);
-      margin-left: auto;
-    }
-
-    /* ── MAIN GRID ── */
     .main {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -221,58 +156,26 @@
       padding: 16px 24px 0;
     }
 
-    /* ── РЕКОМЕНДАЦИИ — полная ширина под гридом ── */
-    .rec-section {
-      padding: 16px 24px 28px;
-      display: none;
-    }
-
+    .rec-section { padding: 16px 24px 28px; display: none; }
     .rec-section.visible { display: block; }
-
-    .rec-hd {
-      display: flex; align-items: center; gap: 8px;
-      margin-bottom: 12px;
-    }
-
+    .rec-hd { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
     .rec-hd-ico { font-size: 15px; }
     .rec-hd-ttl { font-size: 13px; font-weight: 600; color: var(--text); }
     .rec-hd-sub { font-size: 12px; color: var(--soft); margin-left: 4px; }
+    .rec-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 
-    .rec-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-    }
-
-    /* ── ЛОГОТИП БРЕНДА ── */
-    .oil-card-logo {
-      height: 20px; width: auto; max-width: 80px;
-      object-fit: contain; object-position: left center;
-      opacity: 0.85; display: block;
-    }
+    .oil-card-logo { height: 20px; width: auto; max-width: 80px; object-fit: contain; object-position: left center; opacity: 0.85; display: block; }
     .oil-card-logo.hidden { display: none; }
     .oil-card-logo-row { margin-top: 8px; min-height: 20px; }
 
-    /* ── КАРТОЧКА МАСЛА ── */
     .oil-card {
       background: var(--surface); border: 1px solid var(--border);
       border-radius: 14px; box-shadow: var(--shadow);
       overflow: hidden; display: flex; flex-direction: column;
     }
-
-    .oil-card-top {
-      padding: 14px 16px 10px; border-bottom: 1px solid var(--border);
-    }
-    .oil-card-top-main {
-      display: flex; align-items: flex-start;
-      justify-content: space-between; gap: 12px;
-    }
-
-    .oil-card-brand {
-      font-size: 10px; font-weight: 600; letter-spacing: 1px;
-      text-transform: uppercase; color: var(--soft); margin-bottom: 3px;
-    }
-
+    .oil-card-top { padding: 14px 16px 10px; border-bottom: 1px solid var(--border); }
+    .oil-card-top-main { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .oil-card-brand { font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--soft); margin-bottom: 3px; }
     .oil-card-article {
       font-size: 13px; font-weight: 600; color: var(--text);
       font-family: 'Inter', monospace; letter-spacing: 0.3px;
@@ -281,40 +184,16 @@
       transition: background .15s, color .15s;
     }
     .oil-card-article:hover { background: #f0f0ee; color: var(--blue); }
-    .oil-card-article:active { background: #e0eeff; }
     .oil-card-article .copy-ico { opacity: 0; transition: opacity .15s; flex-shrink: 0; }
     .oil-card-article:hover .copy-ico { opacity: 1; }
-
-    .oil-card-price {
-      font-size: 18px; font-weight: 700; color: var(--text); white-space: nowrap;
-    }
+    .oil-card-price { font-size: 18px; font-weight: 700; color: var(--text); white-space: nowrap; }
     .oil-card-price span { font-size: 12px; font-weight: 400; color: var(--soft); }
-
     .oil-card-body { padding: 12px 16px; flex: 1; }
-
-    .oil-card-desc {
-      font-size: 12px; color: var(--muted); line-height: 1.4; margin-bottom: 10px;
-      display: -webkit-box; -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical; overflow: hidden;
-    }
-
+    .oil-card-desc { font-size: 12px; color: var(--muted); line-height: 1.4; margin-bottom: 10px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .oil-card-meta { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
-
-    .meta-chip {
-      background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 5px; padding: 2px 8px;
-      font-size: 11px; font-weight: 500; color: var(--muted);
-    }
-    .meta-chip.visc {
-      background: #eff6ff; border-color: #bfdbfe;
-      color: #1d4ed8; font-weight: 600;
-    }
-
-    .oil-card-footer {
-      padding: 10px 16px; border-top: 1px solid var(--border);
-      display: flex; align-items: center; justify-content: space-between;
-    }
-
+    .meta-chip { background: var(--surface2); border: 1px solid var(--border); border-radius: 5px; padding: 2px 8px; font-size: 11px; font-weight: 500; color: var(--muted); }
+    .meta-chip.visc { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; font-weight: 600; }
+    .oil-card-footer { padding: 10px 16px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
     .stock-badge { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; }
     .stock-dot { width: 6px; height: 6px; border-radius: 50%; }
     .stock-dot.ok  { background: var(--green); }
@@ -322,36 +201,54 @@
     .stock-count { color: var(--muted); }
     .vol-chip { font-size: 12px; font-weight: 600; color: var(--soft); }
 
-    /* ── SHARED CARD STYLES ── */
     .card { background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
-    .card-hd {
-      padding: 13px 18px 12px; border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; gap: 8px;
-    }
+    .card-hd { padding: 13px 18px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
     .card-ico { font-size: 15px; line-height: 1; }
     .card-ttl { font-size: 13px; font-weight: 600; }
     .card-bd  { padding: 18px; }
 
-    /* ── CAR ── */
     .car-name { font-size: 20px; font-weight: 700; margin-bottom: 14px; }
-    .car-field {
-      display: flex; align-items: baseline; gap: 8px;
-      padding: 7px 0; border-bottom: 1px solid var(--border);
-    }
+    .car-field { display: flex; align-items: baseline; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); }
     .car-field:last-child { border-bottom: none; }
     .cf-key { font-size: 13px; font-weight: 600; min-width: 88px; flex-shrink: 0; }
     .cf-val { font-size: 13px; color: var(--muted); }
 
-    /* ── OIL ── */
+    /* ── OIL COLS ── */
     .oil-title    { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-    .oil-volume   { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+    .oil-volume   { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
     .oil-volume strong { color: var(--text); }
+
+    .oil-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .oil-col-source {
+      border-left: 2px solid var(--border);
+      padding-left: 12px;
+    }
+    .oil-col-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--soft);
+      margin-bottom: 8px; display: flex; align-items: center; gap: 5px;
+    }
+    .oil-col-label.gpt-label { color: #2563eb; }
+    .oil-col-label.src-label  { color: var(--soft); }
+
+    .oil-note {
+      font-size: 11px; color: #92400e; background: #fef3c7;
+      border-radius: 5px; padding: 5px 10px; margin-bottom: 10px;
+    }
+    .oil-mismatch {
+      font-size: 11px; color: #7c3aed; background: #f5f3ff;
+      border-radius: 5px; padding: 5px 10px; margin-bottom: 8px;
+    }
 
     .oil-section-lbl {
       font-size: 11px; font-weight: 700; letter-spacing: .8px;
-      text-transform: uppercase; color: var(--soft); margin: 12px 0 7px;
+      text-transform: uppercase; color: var(--soft); margin: 10px 0 6px;
     }
-
     .oil-item {
       background: var(--surface2); border: 1px solid var(--border);
       border-radius: 8px; padding: 10px 12px; margin-bottom: 6px;
@@ -360,44 +257,19 @@
     .oil-row:last-child { margin-bottom: 0; }
     .oil-key { font-size: 12px; font-weight: 600; color: var(--muted); min-width: 66px; flex-shrink: 0; padding-top: 2px; }
     .badges { display: flex; flex-wrap: wrap; gap: 4px; }
-    .badge {
-      background: var(--surface); border: 1px solid var(--border2);
-      border-radius: 4px; padding: 2px 8px;
-      font-size: 12px; font-weight: 500; color: var(--text);
-    }
+    .badge { background: var(--surface); border: 1px solid var(--border2); border-radius: 4px; padding: 2px 8px; font-size: 12px; font-weight: 500; color: var(--text); }
 
-    .source-row {
-      display: flex; justify-content: flex-end;
-      margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border);
-    }
-    .source-link {
-      display: inline-flex; align-items: center; gap: 5px;
-      font-size: 12px; color: var(--soft); text-decoration: none; transition: color .15s;
-    }
+    .source-row { display: flex; justify-content: flex-end; margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .source-link { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--soft); text-decoration: none; transition: color .15s; }
     .source-link:hover { color: var(--accent); text-decoration: underline; }
 
-    /* ── EMPTY / LOADING ── */
-    .empty {
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      min-height: 180px; gap: 8px; color: var(--soft);
-    }
+    .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 180px; gap: 8px; color: var(--soft); }
     .empty-ico { font-size: 32px; opacity: .35; }
     .empty-txt { font-size: 13px; }
-
-    .loading-row {
-      display: flex; align-items: center; gap: 10px;
-      justify-content: center; min-height: 180px;
-      color: var(--muted); font-size: 13px;
-    }
-    .spinner {
-      width: 16px; height: 16px;
-      border: 2px solid var(--border2); border-top-color: var(--accent);
-      border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0;
-    }
+    .loading-row { display: flex; align-items: center; gap: 10px; justify-content: center; min-height: 180px; color: var(--muted); font-size: 13px; }
+    .spinner { width: 16px; height: 16px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── TOAST ── */
     .toast {
       position: fixed; bottom: 24px; left: 50%;
       transform: translateX(-50%) translateY(80px);
@@ -411,15 +283,9 @@
     }
     .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
-    .oil-card-warning {
-      font-size: 11px; color: #92400e; background: #fef3c7;
-      border-radius: 5px; padding: 4px 10px; margin: 6px 14px 0;
-    }
+    .oil-card-warning { font-size: 11px; color: #92400e; background: #fef3c7; border-radius: 5px; padding: 4px 10px; margin: 6px 14px 0; }
 
-    /* ── RESPONSIVE ── */
-    @media (max-width: 900px) {
-      .rec-grid { grid-template-columns: 1fr 1fr; }
-    }
+    @media (max-width: 900px) { .rec-grid { grid-template-columns: 1fr 1fr; } }
     @media (max-width: 680px) {
       header, .input-bar { padding-left: 14px; padding-right: 14px; }
       .vin-row, .prefs-row { padding: 10px 14px 0; }
@@ -428,6 +294,8 @@
       .rec-grid { grid-template-columns: 1fr; }
       #vinInput { width: 150px; }
       .vin-ext-btns { flex-wrap: wrap; }
+      .oil-cols { grid-template-columns: 1fr; }
+      .oil-col-source { border-left: none; border-top: 2px solid var(--border); padding-left: 0; padding-top: 12px; margin-top: 4px; }
     }
   </style>
 </head>
@@ -442,7 +310,6 @@
     <div class="header-gap"></div>
   </header>
 
-  <!-- ── INPUT BAR ── -->
   <div class="input-bar">
     <div class="vin-group">
       <input id="vinInput" type="text" maxlength="17"
@@ -451,12 +318,9 @@
       <div class="vin-divider"></div>
       <button class="btn btn-ok" id="btnOk">ОК</button>
     </div>
-
     <div class="bar-sep"></div>
-
     <label class="btn btn-outline" for="fileInput" id="lblFile">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
         <circle cx="12" cy="13" r="4"/>
       </svg>
@@ -464,10 +328,8 @@
     </label>
     <input type="file" id="fileInput" accept="image/*" />
     <span class="filename-pill" id="fileName"></span>
-
     <button class="btn btn-outline" id="btnSend">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="22" y1="2" x2="11" y2="13"/>
         <polygon points="22 2 15 22 11 13 2 9 22 2"/>
       </svg>
@@ -475,7 +337,6 @@
     </button>
   </div>
 
-  <!-- ── VIN ROW ── -->
   <div class="vin-row" id="vinRow">
     <div class="vin-row-inner">
       <span class="vin-lbl">VIN</span>
@@ -500,84 +361,49 @@
     </div>
   </div>
 
-  <!-- ── PREFS ROW (фильтры под VIN) ── -->
   <div class="prefs-row" id="prefsRow">
     <div class="prefs-row-inner">
-
-      <!-- Вязкость -->
       <div class="pref-group">
         <input type="checkbox" class="pref-cb" id="cbVisc" />
         <label class="pref-label" for="cbVisc">Вязкость:</label>
         <select class="pref-select" id="prefsVisc" disabled>
           <option value="">— выбрать —</option>
-          <option>5W-30</option>
-          <option>5W-40</option>
-          <option>10W-40</option>
-          <option>0W-20</option>
-          <option>0W-30</option>
-          <option>0W-40</option>
-          <option>10W-30</option>
-          <option>15W-40</option>
+          <option>5W-30</option><option>5W-40</option><option>10W-40</option>
+          <option>0W-20</option><option>0W-30</option><option>0W-40</option>
+          <option>10W-30</option><option>15W-40</option>
         </select>
       </div>
-
-      <!-- Бренд -->
       <div class="pref-group">
         <input type="checkbox" class="pref-cb" id="cbBrand" />
         <label class="pref-label" for="cbBrand">Бренд:</label>
         <select class="pref-select" id="prefsBrand" disabled>
           <option value="">— выбрать —</option>
-          <option>AREOL</option>
-          <option>COMMA</option>
-          <option>ZIC</option>
-          <option>LIQUI MOLY</option>
-          <option>CASTROL</option>
-          <option>MOBIL</option>
-          <option>SHELL</option>
-          <option>TOTACHI</option>
-          <option>SINTEC</option>
-          <option>LUKOIL</option>
-          <option>BARDAHL</option>
-          <option>MANNOL</option>
-          <option>REPSOL</option>
-          <option>HYUNDAI XTEER</option>
+          <option>AREOL</option><option>COMMA</option><option>ZIC</option>
+          <option>LIQUI MOLY</option><option>CASTROL</option><option>MOBIL</option>
+          <option>SHELL</option><option>TOTACHI</option><option>SINTEC</option>
+          <option>LUKOIL</option><option>BARDAHL</option><option>MANNOL</option>
+          <option>REPSOL</option><option>HYUNDAI XTEER</option>
         </select>
       </div>
-
       <span class="pref-hint" id="prefsHint"></span>
     </div>
   </div>
 
-  <!-- Основной грид: авто + масло -->
   <div class="main">
     <div class="card">
-      <div class="card-hd">
-        <span class="card-ico">🚗</span>
-        <span class="card-ttl">Автомобиль</span>
-      </div>
+      <div class="card-hd"><span class="card-ico">🚗</span><span class="card-ttl">Автомобиль</span></div>
       <div class="card-bd" id="carInfo">
-        <div class="empty">
-          <div class="empty-ico">🔍</div>
-          <div class="empty-txt">Введите VIN для поиска</div>
-        </div>
+        <div class="empty"><div class="empty-ico">🔍</div><div class="empty-txt">Введите VIN для поиска</div></div>
       </div>
     </div>
-
     <div class="card">
-      <div class="card-hd">
-        <span class="card-ico">🛢️</span>
-        <span class="card-ttl">Масло и жидкости</span>
-      </div>
+      <div class="card-hd"><span class="card-ico">🛢️</span><span class="card-ttl">Масло и жидкости</span></div>
       <div class="card-bd" id="liquids">
-        <div class="empty">
-          <div class="empty-ico">⚙️</div>
-          <div class="empty-txt">Данные появятся после поиска</div>
-        </div>
+        <div class="empty"><div class="empty-ico">⚙️</div><div class="empty-txt">Данные появятся после поиска</div></div>
       </div>
     </div>
   </div>
 
-  <!-- Рекомендации из каталога — на всю ширину -->
   <div class="rec-section" id="recSection">
     <div class="rec-hd">
       <span class="rec-hd-ico">🏷️</span>
@@ -590,15 +416,11 @@
   <div class="toast" id="toast"></div>
 
   <script>
-    // ── STATE ─────────────────────────────────────────────────
     let currentVin  = null;
     let sessionId   = null;
     let loading     = false;
+    let userPrefs   = { viscosity: null, brand: null };
 
-    // userPrefs — формируется из чекбоксов в реальном времени
-    let userPrefs = { viscosity: null, brand: null };
-
-    // ── ELEMENTS ──────────────────────────────────────────────
     const vinInput   = document.getElementById('vinInput');
     const btnOk      = document.getElementById('btnOk');
     const btnSend    = document.getElementById('btnSend');
@@ -613,16 +435,13 @@
     const recGrid    = document.getElementById('recGrid');
     const recSub     = document.getElementById('recSub');
     const prefsHint  = document.getElementById('prefsHint');
-
     const cbVisc     = document.getElementById('cbVisc');
     const selVisc    = document.getElementById('prefsVisc');
     const cbBrand    = document.getElementById('cbBrand');
     const selBrand   = document.getElementById('prefsBrand');
-
     const btnArmtek  = document.getElementById('btnArmtek');
     const btnRavenol = document.getElementById('btnRavenol');
 
-    // ── INIT ──────────────────────────────────────────────────
     async function init() {
       const path = location.pathname.slice(1);
       if (!path) {
@@ -634,169 +453,101 @@
       sessionId = path;
       document.getElementById('sessionLabel').textContent = 'Session: ' + sessionId;
     }
-
     init();
 
-    // ── PREFS CHECKBOXES ──────────────────────────────────────
-    cbVisc.addEventListener('change', () => {
-      selVisc.disabled = !cbVisc.checked;
-      if (!cbVisc.checked) selVisc.value = '';
-      applyPrefs();
-    });
-
-    cbBrand.addEventListener('change', () => {
-      selBrand.disabled = !cbBrand.checked;
-      if (!cbBrand.checked) selBrand.value = '';
-      applyPrefs();
-    });
-
+    cbVisc.addEventListener('change', () => { selVisc.disabled = !cbVisc.checked; if (!cbVisc.checked) selVisc.value = ''; applyPrefs(); });
+    cbBrand.addEventListener('change', () => { selBrand.disabled = !cbBrand.checked; if (!cbBrand.checked) selBrand.value = ''; applyPrefs(); });
     selVisc.addEventListener('change', applyPrefs);
     selBrand.addEventListener('change', applyPrefs);
 
     function applyPrefs() {
       userPrefs.viscosity = (cbVisc.checked && selVisc.value) ? selVisc.value : null;
       userPrefs.brand     = (cbBrand.checked && selBrand.value) ? selBrand.value : null;
-
-      // Подсказка
       const parts = [];
       if (userPrefs.viscosity) parts.push(userPrefs.viscosity);
       if (userPrefs.brand)     parts.push(userPrefs.brand);
       prefsHint.textContent = parts.length ? '✓ фильтр: ' + parts.join(', ') : '';
-
       if (currentVin) loadLiquids(currentVin);
     }
 
-    // ── VIN: копирование по клику ─────────────────────────────
     vinDisplay.addEventListener('click', () => {
       const vin = vinDisplay.textContent.trim();
       if (!vin) return;
-      navigator.clipboard.writeText(vin).then(() => {
-        showToast('VIN скопирован: ' + vin, 2000);
-      }).catch(() => {
-        // fallback
-        const ta = document.createElement('textarea');
-        ta.value = vin; ta.style.position = 'fixed'; ta.style.opacity = '0';
-        document.body.appendChild(ta); ta.select();
-        document.execCommand('copy'); document.body.removeChild(ta);
-        showToast('VIN скопирован: ' + vin, 2000);
-      });
+      navigator.clipboard.writeText(vin).then(() => showToast('VIN скопирован: ' + vin, 2000))
+        .catch(() => { const ta = document.createElement('textarea'); ta.value = vin; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showToast('VIN скопирован: ' + vin, 2000); });
     });
 
-    // ── EVENTS ────────────────────────────────────────────────
     vinInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendManual(); });
     btnOk.addEventListener('click', sendManual);
     btnSend.addEventListener('click', () => { if (fileInput.files[0]) upload(); else sendManual(); });
-
     fileInput.addEventListener('change', () => {
       const f = fileInput.files[0];
       fileName.textContent = f ? f.name : '';
       document.getElementById('lblFile').classList.toggle('active', !!f);
     });
 
-    // ── РУЧНОЙ VIN ────────────────────────────────────────────
     async function sendManual() {
       const vin = vinInput.value.trim();
       if (!vin) { vinInput.focus(); return; }
       try {
-        await fetch('/manual/' + sessionId, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ vin })
-        });
+        await fetch('/manual/' + sessionId, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vin }) });
       } catch (e) { console.error('manual error', e); }
     }
 
-    // ── ЗАГРУЗКА ФОТО ─────────────────────────────────────────
     async function upload() {
       const file = fileInput.files[0];
       if (!file) return;
-
-      fileInput.value = '';
-      fileName.textContent = '';
+      fileInput.value = ''; fileName.textContent = '';
       document.getElementById('lblFile').classList.remove('active');
-
       loading = true;
       setLoading(carInfo, 'Распознаём VIN… (попытка 1/3)');
       setLoading(liquids, 'Распознаём VIN…');
-      hideRec();
-      btnSend.disabled = true;
-
-      const fd = new FormData();
-      fd.append('image', file);
-
+      hideRec(); btnSend.disabled = true;
+      const fd = new FormData(); fd.append('image', file);
       try {
         const res  = await fetch('/upload/' + sessionId, { method: 'POST', body: fd });
         const data = await res.json();
-
         loading = false;
-
-        if (!data.vin) {
-          setError(carInfo, 'VIN не найден на фото');
-          setError(liquids, 'Попробуйте сделать фото чётче или ввести вручную');
-          showToast('VIN не удалось распознать после 3 попыток');
-        }
+        if (!data.vin) { setError(carInfo, 'VIN не найден на фото'); setError(liquids, 'Попробуйте сделать фото чётче или ввести вручную'); showToast('VIN не удалось распознать после 3 попыток'); }
       } catch (e) {
-        loading = false;
-        setError(carInfo, 'Ошибка отправки');
-        setError(liquids, 'Ошибка отправки');
-        showToast('Ошибка соединения с сервером');
-      } finally {
-        btnSend.disabled = false;
-      }
+        loading = false; setError(carInfo, 'Ошибка отправки'); setError(liquids, 'Ошибка отправки'); showToast('Ошибка соединения с сервером');
+      } finally { btnSend.disabled = false; }
     }
 
-    // ── POLLING ───────────────────────────────────────────────
     async function poll() {
       if (!sessionId) return;
       try {
         const res  = await fetch('/data/' + sessionId);
         if (!res.ok) return;
         const data = await res.json();
-
         if (!loading) {
           const vin = data.vin || null;
           vinRow.style.display = vin ? 'block' : 'none';
           prefsRow.classList.toggle('visible', !!vin);
-
-          if (vin) {
-            vinDisplay.textContent = vin.toUpperCase();
-            updateExtLinks(vin);
-          }
-
+          if (vin) { vinDisplay.textContent = vin.toUpperCase(); updateExtLinks(vin); }
           if (vin && vin !== currentVin) {
-            currentVin = vin;
-            vinInput.value = vin.toUpperCase();
-            hideRec();
-            loadCarInfo(vin);
-            loadLiquids(vin);
+            currentVin = vin; vinInput.value = vin.toUpperCase();
+            hideRec(); loadCarInfo(vin); loadLiquids(vin);
           }
         }
       } catch (e) { console.error('poll error', e); }
     }
-
     setInterval(poll, 3000);
 
-    // ── ВНЕШНИЕ ССЫЛКИ ───────────────────────────────────────
     function updateExtLinks(vin) {
       const v = (vin || '').toUpperCase();
       btnArmtek.href  = 'https://etp.armtek.ru/catalogs/catalogs_original/getCatalogByParams/?ft=findByVIN&vin=' + v;
       btnRavenol.href = 'https://shop.ravenol.ru/vinsearch-' + v + '/';
     }
 
-    // ── CAR INFO ──────────────────────────────────────────────
     async function loadCarInfo(vin) {
       setLoading(carInfo);
       try {
         const res  = await fetch('/car-info/' + vin);
         const data = await res.json();
-        if (res.status === 404 || data.error === 'not_found') {
-          setError(carInfo, 'Автомобиль не найден в базе');
-          return;
-        }
+        if (res.status === 404 || data.error === 'not_found') { setError(carInfo, 'Автомобиль не найден в базе'); return; }
         renderCar(data);
-      } catch (e) {
-        setError(carInfo, 'Нет данных об автомобиле');
-      }
+      } catch (e) { setError(carInfo, 'Нет данных об автомобиле'); }
     }
 
     function renderCar(d) {
@@ -809,27 +560,22 @@
         { k: 'КПП',       v: d.transmission },
         { k: 'Привод',    v: d.drive },
       ].filter(f => f.v);
-
       carInfo.innerHTML =
         (name ? '<div class="car-name">' + name + '</div>' : '') +
-        '<div>' +
-          fields.map(f =>
-            '<div class="car-field"><span class="cf-key">' + f.k + ':</span><span class="cf-val">' + f.v + '</span></div>'
-          ).join('') +
-          (!fields.length && !name ? '<p style="color:var(--soft);font-size:13px">Нет данных</p>' : '') +
-        '</div>';
+        '<div>' + fields.map(f => '<div class="car-field"><span class="cf-key">' + f.k + ':</span><span class="cf-val">' + f.v + '</span></div>').join('') + '</div>';
     }
 
-    // ── OIL ───────────────────────────────────────────────────
+    // ── OIL — два столбца: GPT основной, источник справа ──
     async function loadLiquids(vin) {
       const localVin = vin;
-      setLoading(liquids);
+      setLoading(liquids, 'Запрашиваем ИИ…');
 
       try {
         const _p = new URLSearchParams();
         if (userPrefs.viscosity) _p.set('viscosity', userPrefs.viscosity);
         if (userPrefs.brand)     _p.set('brand', userPrefs.brand);
         const _qs = _p.toString() ? '?' + _p.toString() : '';
+
         const res  = await fetch('/oil/' + vin + _qs);
         const data = await res.json();
 
@@ -840,9 +586,11 @@
           return;
         }
 
-        const oil       = data.oil;
-        const sourceUrl = data?.url || null;
+        const oil       = data.oil;         // GPT — основной
+        const oilSrc    = data.oil_source;  // Сайт — справка
+        const sourceUrl = data.url || null;
         const recs      = data.recommendations || [];
+        const gptNote   = data.gpt_note || null;
 
         if (!oil) {
           liquids.innerHTML = emptyHtml('🛢️', 'Нет данных по маслу');
@@ -850,41 +598,70 @@
           return;
         }
 
-        const volume = oil.volume;
-        const best   = oil.oil?.best        || [];
-        const alt    = oil.oil?.alternative || [];
+        const alerts = data.alerts || [];
 
-        function renderItems(arr) {
-          if (!arr.length) return '<p style="color:var(--soft);font-size:13px">—</p>';
+        function renderItems(arr, compact) {
+          if (!arr || !arr.length) return '<p style="color:var(--soft);font-size:12px">—</p>';
           return arr.map(item => {
             const specs     = item.specs     || [];
             const viscosity = item.viscosity || [];
-            return '<div class="oil-item">' +
+            const fs = compact ? 'font-size:11px' : '';
+            const kw = compact ? 'min-width:56px;font-size:11px' : '';
+            const bfs = compact ? 'font-size:11px' : '';
+            const pd = compact ? 'padding:7px 10px;margin-bottom:4px' : '';
+            return '<div class="oil-item" style="' + pd + '">' +
               (specs.length
-                ? '<div class="oil-row"><span class="oil-key">Допуски:</span><div class="badges">' +
-                  specs.map(s => '<span class="badge">' + s + '</span>').join('') +
+                ? '<div class="oil-row"><span class="oil-key" style="' + kw + '">Допуски:</span><div class="badges">' +
+                  specs.map(s => '<span class="badge" style="' + bfs + '">' + esc(s) + '</span>').join('') +
                   '</div></div>' : '') +
               (viscosity.length
-                ? '<div class="oil-row"><span class="oil-key">Вязкость:</span><div class="badges">' +
-                  viscosity.map(v => '<span class="badge">' + v + '</span>').join('') +
+                ? '<div class="oil-row"><span class="oil-key" style="' + kw + '">Вязкость:</span><div class="badges">' +
+                  viscosity.map(v => '<span class="badge" style="' + bfs + '">' + esc(v) + '</span>').join('') +
                   '</div></div>' : '') +
               '</div>';
           }).join('');
         }
 
+        const gptBest = oil.oil?.best        || [];
+        const gptAlt  = oil.oil?.alternative || [];
+        const srcBest = oilSrc?.best         || [];
+        const srcAlt  = oilSrc?.alternative  || [];
+        const volume  = oil.volume;
+
         liquids.innerHTML =
           '<div class="oil-title">Масло двигателя</div>' +
           (volume ? '<div class="oil-volume">Объём: <strong>' + volume + ' л</strong></div>' : '') +
-          '<div class="oil-section-lbl">Лучший выбор</div>' +
-          renderItems(best) +
-          '<div class="oil-section-lbl">Альтернатива</div>' +
-          renderItems(alt) +
+          (gptNote ? '<div class="oil-note">💡 ' + esc(gptNote) + '</div>' : '') +
+          (alerts.length ? alerts.map(a => '<div class="oil-mismatch">⚠️ ' + esc(a) + '</div>').join('') : '') +
+
+          '<div class="oil-cols">' +
+
+            '<div class="oil-col-main">' +
+              '<div class="oil-col-label gpt-label">🤖 По данным ИИ</div>' +
+              '<div class="oil-section-lbl">Лучший выбор</div>' +
+              renderItems(gptBest, false) +
+              (gptAlt.length ? '<div class="oil-section-lbl">Альтернатива</div>' + renderItems(gptAlt, false) : '') +
+            '</div>' +
+
+            '<div class="oil-col-source">' +
+              '<div class="oil-col-label src-label">📄 По источнику</div>' +
+              (oilSrc
+                ? '<div class="oil-section-lbl">Лучший выбор</div>' +
+                  renderItems(srcBest, true) +
+                  (srcAlt.length ? '<div class="oil-section-lbl">Альтернатива</div>' + renderItems(srcAlt, true) : '')
+                : '<p style="font-size:12px;color:var(--soft);padding-top:4px">Источник не найден</p>'
+              ) +
+            '</div>' +
+
+          '</div>' +
+
           (sourceUrl
             ? '<div class="source-row"><a href="' + sourceUrl + '" target="_blank" rel="noopener noreferrer" class="source-link">' +
               '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
               '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>' +
               '<polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
-              'источник</a></div>' : '');
+              'источник</a></div>'
+            : '');
 
         renderRec(recs);
 
@@ -894,7 +671,6 @@
       }
     }
 
-    // ── РЕКОМЕНДАЦИИ ──────────────────────────────────────────
     function renderRec(recs) {
       if (!recs || !recs.length) { hideRec(); return; }
       recSub.textContent = recs.length + ' позиц' + (recs.length === 1 ? 'ия' : 'ии') + ' подобрано';
@@ -902,25 +678,13 @@
       recSection.classList.add('visible');
     }
 
-    function hideRec() {
-      recSection.classList.remove('visible');
-      recGrid.innerHTML = '';
-    }
+    function hideRec() { recSection.classList.remove('visible'); recGrid.innerHTML = ''; }
 
     function renderRecCard(r) {
       const stockOk  = r.stock >= 3;
-      const stockTxt = r.stock + ' шт.';
-      const allSpecs = [
-        ...(r.specs?.api   || []),
-        ...(r.specs?.acea  || []),
-        ...(r.specs?.ilsac || []),
-      ].slice(0, 4);
-
-      const logoSrc = brandLogo(r.brand);
-      const logoHtml = logoSrc
-        ? '<img class="oil-card-logo" src="' + logoSrc + '" alt="' + esc(r.brand) + '" onerror="this.classList.add(\'hidden\')">'
-        : '';
-
+      const allSpecs = [...(r.specs?.api || []), ...(r.specs?.acea || []), ...(r.specs?.ilsac || [])].slice(0, 4);
+      const logoSrc  = brandLogo(r.brand);
+      const logoHtml = logoSrc ? '<img class="oil-card-logo" src="' + logoSrc + '" alt="' + esc(r.brand) + '" onerror="this.classList.add(\'hidden\')">' : '';
       return '<div class="oil-card">' +
         '<div class="oil-card-top">' +
           '<div class="oil-card-top-main">' +
@@ -945,71 +709,38 @@
           '</div>' +
         '</div>' +
         '<div class="oil-card-footer">' +
-          '<div class="stock-badge">' +
-            '<div class="stock-dot ' + (stockOk ? 'ok' : 'low') + '"></div>' +
-            '<span class="stock-count">' + stockTxt + '</span>' +
-          '</div>' +
+          '<div class="stock-badge"><div class="stock-dot ' + (stockOk ? 'ok' : 'low') + '"></div><span class="stock-count">' + r.stock + ' шт.</span></div>' +
           '<span class="vol-chip">' + esc(r.oil_type || '') + '</span>' +
         '</div>' +
       '</div>';
     }
 
-    function formatPrice(p) {
-      return Number(p).toLocaleString('ru-RU');
-    }
-
-    function esc(str) {
-      return String(str || '')
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
-
-    // ── HELPERS ───────────────────────────────────────────────
-    function setLoading(el, msg) {
-      el.innerHTML = '<div class="loading-row"><div class="spinner"></div>' + (msg || 'Загрузка…') + '</div>';
-    }
+    function formatPrice(p) { return Number(p).toLocaleString('ru-RU'); }
+    function esc(str) { return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function setLoading(el, msg) { el.innerHTML = '<div class="loading-row"><div class="spinner"></div>' + (msg || 'Загрузка…') + '</div>'; }
     function setError(el, msg) { el.innerHTML = emptyHtml('⚠️', msg); }
-    function emptyHtml(icon, msg) {
-      return '<div class="empty"><div class="empty-ico">' + icon + '</div><div class="empty-txt">' + msg + '</div></div>';
-    }
+    function emptyHtml(icon, msg) { return '<div class="empty"><div class="empty-ico">' + icon + '</div><div class="empty-txt">' + msg + '</div></div>'; }
 
-    // ── ЛОГОТИПЫ БРЕНДОВ ──────────────────────────────────────
     const BRAND_LOGOS = {
-      'LIQUI MOLY': 'liquimoly', 'CASTROL': 'castrol', 'MOBIL': 'mobil',
-      'SHELL': 'Shell', 'ZIC': 'zic', 'TOTACHI': 'totachi', 'SINTEC': 'sintec',
-      'LUKOIL': 'lukoil', 'ROLF': 'rolf', 'AREOL': 'areol', 'MANNOL': 'mannol',
-      'REPSOL': 'repsol', 'BARDAHL': 'bardahl', 'TAKAYAMA': 'takayma',
-      'HYUNDAI XTEER': 'hyundayxteer', 'TOYOTA': 'toyota', 'LEXUS': 'lexus',
-      'NISSAN': 'nissan', 'MITSUBISHI': 'mitsubishi', 'VAG': 'volkswagen',
-      'VOLKSWAGEN': 'volkswagen', 'GM': 'gm', 'IDEMITSU': 'idemitsu',
-      'REINWELL': 'reinwell', 'PROFI-CAR': 'profi-car', 'FURO': 'furo',
-      'PEXOL': 'pexol', 'COMMA': 'comma', 'HI-GEAR': 'hi-gear', 'ВМПАВТО': 'вмпавто',
+      'LIQUI MOLY':'liquimoly','CASTROL':'castrol','MOBIL':'mobil','SHELL':'Shell',
+      'ZIC':'zic','TOTACHI':'totachi','SINTEC':'sintec','LUKOIL':'lukoil','ROLF':'rolf',
+      'AREOL':'areol','MANNOL':'mannol','REPSOL':'repsol','BARDAHL':'bardahl',
+      'TAKAYAMA':'takayma','HYUNDAI XTEER':'hyundayxteer','TOYOTA':'toyota',
+      'LEXUS':'lexus','NISSAN':'nissan','MITSUBISHI':'mitsubishi','VAG':'volkswagen',
+      'VOLKSWAGEN':'volkswagen','GM':'gm','IDEMITSU':'idemitsu','REINWELL':'reinwell',
+      'PROFI-CAR':'profi-car','FURO':'furo','PEXOL':'pexol','COMMA':'comma',
+      'HI-GEAR':'hi-gear','ВМПАВТО':'вмпавто',
     };
+    function brandLogo(brand) { const file = BRAND_LOGOS[(brand||'').toUpperCase()]||null; return file ? '/logo/'+file+'.webp' : null; }
 
-    function brandLogo(brand) {
-      const file = BRAND_LOGOS[(brand || '').toUpperCase()] || null;
-      return file ? '/logo/' + file + '.webp' : null;
-    }
-
-    // ── КОПИРОВАНИЕ АРТИКУЛА ──────────────────────────────────
     function copyArticle(el, article) {
-      navigator.clipboard.writeText(article).then(() => {
-        el.style.color = 'var(--green)';
-        setTimeout(() => el.style.color = '', 1200);
-        showToast('Скопировано: ' + article, 2000);
-      }).catch(() => {
-        const ta = document.createElement('textarea');
-        ta.value = article; ta.style.position = 'fixed'; ta.style.opacity = '0';
-        document.body.appendChild(ta); ta.select();
-        document.execCommand('copy'); document.body.removeChild(ta);
-        showToast('Скопировано: ' + article, 2000);
-      });
+      navigator.clipboard.writeText(article).then(() => { el.style.color='var(--green)'; setTimeout(()=>el.style.color='',1200); showToast('Скопировано: '+article,2000); })
+        .catch(()=>{ const ta=document.createElement('textarea'); ta.value=article; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); showToast('Скопировано: '+article,2000); });
     }
 
-    function showToast(msg, duration = 3500) {
+    function showToast(msg, duration=3500) {
       const el = document.getElementById('toast');
-      el.textContent = msg;
-      el.classList.add('show');
+      el.textContent = msg; el.classList.add('show');
       setTimeout(() => el.classList.remove('show'), duration);
     }
   </script>
