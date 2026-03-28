@@ -31,7 +31,7 @@ const VISCOSITY_PRIORITY = [
 // ─────────────────────────────────────────────────────────────
 function pickCanisterVolume(oilVolume) {
   if (!oilVolume) return null;
-  const standard = [4, 5, 6, 7, 8, 10, 20];
+  const standard = [1, 2, 3, 4, 5, 6, 7, 8, 10, 20];
   for (const vol of standard) {
     if (vol >= oilVolume) return vol;
   }
@@ -82,7 +82,6 @@ function isSpecCompatible(required, candidate) {
   if (!required || !candidate) return false;
   if (required === candidate) return true;
 
-  // ── ACEA ─────────────────────────────────────────────────
   const reqAcea  = parseAceaParts(required);
   const candAcea = parseAceaParts(candidate);
 
@@ -102,14 +101,12 @@ function isSpecCompatible(required, candidate) {
     return reqAcea.some(r => candAcea.includes(r));
   }
 
-  // ── ILSAC GF-N ───────────────────────────────────────────
   const reqGF  = required.match(/^(?:ILSAC)?GF-?(\d+)$/);
   const candGF = candidate.match(/^(?:ILSAC)?GF-?(\d+)$/);
   if (reqGF && candGF) {
     return parseInt(candGF[1]) >= parseInt(reqGF[1]);
   }
 
-  // ── API ──────────────────────────────────────────────────
   const reqApi  = parseApiParts(required);
   const candApi = parseApiParts(candidate);
   if (reqApi && candApi) {
@@ -147,11 +144,12 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
   const preferredBrand = prefs?.brand ? prefs.brand.toUpperCase() : null;
 
   // ── Допустимый диапазон объёма канистры ──────────────────
-  // Минимум 4л — литрушки полностью исключены
+  // Заправочный объём 4.2л → targetVolume=5л → minVol=4, maxVol=7
+  // ВАЖНО: если targetVolume известен — позиции с volume==null тоже отсекаем
   let minVol = null;
   let maxVol = null;
   if (targetVolume) {
-    minVol = Math.max(4, targetVolume - 1);
+    minVol = Math.max(3, targetVolume - 1);
     maxVol = Math.min(10, targetVolume + 2);
   }
 
@@ -182,13 +180,16 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
       }
     }
 
-    // ── Фильтр объёма: только 4л и выше, всегда ──────────────
-    if (item.volume != null && item.volume < 4) {
+    // ── Фильтр объёма канистры ────────────────────────────────
+    // Всегда убираем <2л (доливочные), даже без targetVolume
+    if (item.volume != null && item.volume < 2) {
       return null;
     }
-    // Диапазон по объёму двигателя
-    if (minVol !== null && item.volume != null) {
-      if (item.volume < minVol || item.volume > maxVol) {
+
+    // ── ФИКС: если заправочный объём известен —
+    //    отсекаем позиции с неизвестным объёмом И вне диапазона
+    if (minVol !== null) {
+      if (item.volume == null || item.volume < minVol || item.volume > maxVol) {
         return null;
       }
     }
