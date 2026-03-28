@@ -73,7 +73,7 @@ ${generations.map((g, i) => `${i}: ${g}`).join("\n")}
 Верни ТОЛЬКО индекс (число), который лучше всего подходит. Без текста, только число.
 `.trim();
 
-  const response = await openai.responses.create({ model: "gpt-4o-mini", input: prompt });
+  const response = await openai.responses.create({ model: "gpt-5.4-mini", input: prompt });
   let index = parseInt(response.output_text.trim());
   if (isNaN(index) || index < 0 || index >= generations.length) index = 0;
   return `https://podbormasla.ru/${brand}/${model}/${generations[index]}/`;
@@ -103,7 +103,7 @@ ${data.slice(0, 15000)}
 Если двигатель не найден — верни: { "found": false }
 `.trim();
 
-  const response = await openai.responses.create({ model: "gpt-4o-mini", input: prompt });
+  const response = await openai.responses.create({ model: "gpt-5.4-mini", input: prompt });
   try {
     return JSON.parse(response.output_text.replace(/```json|```/g, "").trim());
   } catch (e) {
@@ -138,7 +138,7 @@ async function fallbackGlobal(car) {
 Только JSON, никакого текста вокруг.
 `.trim();
 
-  const response = await openai.responses.create({ model: "gpt-4o-mini", input: prompt });
+  const response = await openai.responses.create({ model: "gpt-5.4-mini", input: prompt });
   try {
     return JSON.parse(response.output_text.replace(/```json|```/g, "").trim());
   } catch (e) {

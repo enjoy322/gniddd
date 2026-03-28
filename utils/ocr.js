@@ -4,7 +4,20 @@ const OpenAI = require("openai");
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// ── Нормализация VIN ──
+// ── Определяем MIME по magic bytes (multer сохраняет без расширения) ──
+function detectMime(filePath) {
+  const buf = Buffer.alloc(4);
+  const fd  = fs.openSync(filePath, "r");
+  fs.readSync(fd, buf, 0, 4, 0);
+  fs.closeSync(fd);
+
+  if (buf[0] === 0xFF && buf[1] === 0xD8) return "image/jpeg";
+  if (buf[0] === 0x89 && buf[1] === 0x50) return "image/png";
+  if (buf[0] === 0x47 && buf[1] === 0x49) return "image/gif";
+  if (buf[0] === 0x52 && buf[1] === 0x49) return "image/webp";
+  return "image/jpeg";
+}
+
 function normalizeVIN(vin) {
   return vin
     ?.toUpperCase()
@@ -12,27 +25,26 @@ function normalizeVIN(vin) {
     .replace(/[IOQ]/g, "");
 }
 
-// ── Три промпта с разным подходом — повышают шанс распознавания ──
 const VIN_PROMPTS = [
   "Find the VIN number in this image. Reply with ONLY the 17-character VIN, no spaces, no explanation. If not found, reply NOT_FOUND.",
   "Look carefully at this image for a VIN (Vehicle Identification Number). It is 17 characters long, contains only letters A-Z (except I, O, Q) and digits 0-9. It may be on a sticker, dashboard, door frame, or document. Reply with ONLY the 17-character VIN or NOT_FOUND.",
-  "This image may contain a VIN code. VIN is exactly 17 alphanumeric characters. Look for sequences like 'XTA', 'Z94', 'WBA', 'JN1', 'SHH' at the start — these are common VIN beginnings. Extract and return ONLY the 17-character VIN with no spaces. If you cannot find it, reply NOT_FOUND."
+  "This image may contain a VIN code. VIN is exactly 17 alphanumeric characters. Look for sequences like 'XTA', 'Z94', 'WBA', 'JN1', 'SHH' at the start. Extract and return ONLY the 17-character VIN with no spaces. If you cannot find it, reply NOT_FOUND."
 ];
 
 async function extractVINwithPrompt(filePath, promptText) {
   const base64 = fs.readFileSync(filePath).toString("base64");
+  const mime   = detectMime(filePath);
+  console.log(`[VIN OCR] mime: ${mime}`);
 
   const response = await openai.responses.create({
-    model: "gpt-4o-mini",
-    input: [
-      {
-        role: "user",
-        content: [
-          { type: "input_text",  text: promptText },
-          { type: "input_image", image_url: `data:image/jpeg;base64,${base64}` }
-        ]
-      }
-    ]
+    model: "gpt-5.4-mini",
+    input: [{
+      role: "user",
+      content: [
+        { type: "input_text",  text: promptText },
+        { type: "input_image", image_url: `data:${mime};base64,${base64}` }
+      ]
+    }]
   });
 
   return normalizeVIN(response.output_text.trim());
