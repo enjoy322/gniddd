@@ -127,7 +127,7 @@ async function extractVINwithPrompt(filePath, promptText) {
         },
         {
           type:      "input_image",
-          image_url: `data:image/jpeg;base64,${base64}`
+          image_url: { url: `data:image/jpeg;base64,${base64}` }  // ИСПРАВЛЕНО: был просто строкой, теперь объект { url: "..." }
         }
       ]
     }]
@@ -147,7 +147,7 @@ async function extractVIN(filePath) {
         return vin;
       }
     } catch (e) {
-      console.error(`[VIN OCR] attempt ${attempt + 1} error:`, e.message);
+      console.error(`[VIN OCR] attempt ${attempt + 1} error:`, e);  // ИСПРАВЛЕНО: e вместо e.message — видим полный стектрейс
     }
   }
   console.log("[VIN OCR] all attempts failed");
