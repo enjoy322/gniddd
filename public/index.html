@@ -674,17 +674,40 @@
       fd.append('image', file);
 
       try {
-        const res  = await fetch('/upload/' + sessionId, { method: 'POST', body: fd });
-        const data = await res.json();
+        // ═══════════════════════════════════════════════════════════
+// ПАТЧ для public/index.html — БАГ 1: спиннер бесконечно крутится
+//
+// Найдите функцию upload() и замените блок внутри try{} на этот:
+// ═══════════════════════════════════════════════════════════
 
-        if (!data.vin) {
-          // Сервер уже сделал 3 попытки — всё равно не нашёл
-          loading = false; // сбрасываем — следующая загрузка должна работать
-          setError(carInfo, 'VIN не найден на фото');
-          setError(liquids, 'Попробуйте сделать фото чётче или ввести вручную');
-          showToast('VIN не удалось распознать после 3 попыток');
-        }
-        // Если VIN найден — polling подхватит и загрузит данные
+/*
+// БЫЛО (loading сбрасывается только при ошибке — poll() не срабатывает):
+
+      const res  = await fetch('/upload/' + sessionId, { method: 'POST', body: fd });
+      const data = await res.json();
+
+      if (!data.vin) {
+        loading = false; // ← сбрасывается ТОЛЬКО здесь
+        setError(carInfo, 'VIN не найден на фото');
+        setError(liquids, 'Попробуйте сделать фото чётче или ввести вручную');
+        showToast('VIN не удалось распознать после 3 попыток');
+      }
+      // Если VIN найден — loading остаётся true, poll() пропускает VIN навсегда!
+*/
+
+// НАДО (loading = false сразу, poll() подхватит VIN):
+
+      const res  = await fetch('/upload/' + sessionId, { method: 'POST', body: fd });
+      const data = await res.json();
+
+      loading = false; // ← сбрасываем ВСЕГДА — poll() увидит VIN и загрузит данные
+
+      if (!data.vin) {
+        setError(carInfo, 'VIN не найден на фото');
+        setError(liquids, 'Попробуйте сделать фото чётче или ввести вручную');
+        showToast('VIN не удалось распознать после 3 попыток');
+      }
+      // Если VIN найден — poll() через ≤3 сек вызовет loadCarInfo + loadLiquids
       } catch (e) {
         loading = false;
         setError(carInfo, 'Ошибка отправки');

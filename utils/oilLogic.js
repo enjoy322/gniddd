@@ -31,13 +31,27 @@ function buildRecommendations(oil, prefs = {}) {
     const bestItems = oilData?.best        || [];
     const altItems  = oilData?.alternative || [];
 
-    for (const item of bestItems) {
-      specs.push(...(item.specs     || []));
-      specs.push(...(item.viscosity || []));
+    // ── ФИКС БАГ 2б: выбираем вязкость ПЕРВОЙ, затем берём specs
+    //    только из блока с совпадающей вязкостью, а не из всех сразу.
+    //    Иначе C2 (0W-20) и A5 (5W-30) смешиваются и портят подбор.
+    const viscosity = pickViscosity(bestItems, altItems);
+    const workingVisc = viscosity ? viscosity.replace(/\s/g, "").toUpperCase() : null;
+
+    // Находим блок best, вязкость которого совпадает с выбранной
+    const matchedBlock = workingVisc
+      ? bestItems.find(item =>
+          (item.viscosity || []).some(v => v.replace(/\s/g, "").toUpperCase() === workingVisc)
+        )
+      : bestItems[0];
+
+    const targetBlock = matchedBlock || bestItems[0];
+    if (targetBlock) {
+      specs.push(...(targetBlock.specs     || []));
+      specs.push(...(targetBlock.viscosity || []));
     }
+    // ── конец фикса
 
     const oilVolume = oil?.volume ?? null;
-    const viscosity = pickViscosity(bestItems, altItems);
 
     console.log(`[oil] matchOil: viscosity=${viscosity} oilVolume=${oilVolume}л prefs=${JSON.stringify(prefs)}`);
     return matchOil({ specs, volume: oilVolume, viscosity, prefs });

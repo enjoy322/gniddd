@@ -25,19 +25,14 @@ const VISCOSITY_PRIORITY = ["5W-30","5W-40","10W-40","10W-30","0W-30","0W-40","0
 
 // ─────────────────────────────────────────────────────────────
 // ОБЪЁМ КАНИСТРЫ
-// ≤ 4.25л → 4л, > 4.25л → 5л (стандартные объёмы)
+// Возвращаем минимальный стандартный объём >= oilVolume
+// (4л для заливки 3.6л — потому что 4 >= 3.6)
 // ─────────────────────────────────────────────────────────────
 function pickCanisterVolume(oilVolume) {
   if (!oilVolume) return null;
   const standard = [1, 2, 3, 4, 5, 6, 7, 8, 10, 20];
-  // Граница 4.25: 4.25 → 4л, 4.26 → 5л
-  // Общее правило: округляем вниз если дробная часть <= 0.25, иначе вверх
-  for (let i = 0; i < standard.length; i++) {
-    const cur  = standard[i];
-    const next = standard[i + 1];
-    if (oilVolume <= cur) return cur;
-    if (next && oilVolume <= cur + 0.25) return cur;   // 4.25 → 4
-    if (next && oilVolume < next) return next;           // 4.26..4.99 → 5
+  for (const vol of standard) {
+    if (vol >= oilVolume) return vol;
   }
   return standard[standard.length - 1];
 }
@@ -64,14 +59,6 @@ function clean(v) { return (v || "").trim(); }
 
 // ─────────────────────────────────────────────────────────────
 // MATCHOIL — основная функция подбора
-//
-// Параметры:
-//   specs      — допуски из источника (OEM, ACEA, API)
-//   volume     — объём заливки масла (л), например 4.4
-//   viscosity  — рекомендованная вязкость из источника (или null)
-//   prefs      — предпочтения клиента:
-//     prefs.viscosity — выбранная клиентом вязкость (или null)
-//     prefs.brand     — выбранный клиентом бренд (или null)
 // ─────────────────────────────────────────────────────────────
 function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = {}) {
   let catalog;
@@ -86,15 +73,10 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
   const targetVolume       = pickCanisterVolume(volume);
 
   // ── Определяем рабочую вязкость ──────────────────────────────
-  // Если клиент указал предпочтение — используем его
-  // Иначе — региональный приоритет из допущенных вязкостей
   const clientViscosity = prefs?.viscosity ? normalizeViscosity(prefs.viscosity) : null;
   const autoViscosity   = viscosity ? normalizeViscosity(viscosity) : null;
-
-  // autoViscosity — уже выбранная региональным приоритетом вязкость из источника
   const workingViscosity = clientViscosity || autoViscosity;
 
-  // Флаг: клиент выбрал вязкость которой нет в допусках источника
   const viscosityNotRecommended = !!(
     clientViscosity && autoViscosity && clientViscosity !== autoViscosity
   );
@@ -128,33 +110,36 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
       const matched = itemSpecs.some(is => is.includes(s) || s.includes(is));
       if (!matched) continue;
 
-      // Определяем тип допуска
       if (/^[A-Z]{2}\d{4}$|^\d{3}\.\d{2}$|RN|MB|BMW|VW|GM/.test(s)) {
-        oemMatches++;   // OEM: RN0710, 229.5, VW50200 и т.д.
+        oemMatches++;
       } else if (s.startsWith("ACEA")) {
         aceaMatches++;
       } else if (s.startsWith("API")) {
         apiMatches++;
       } else {
-        oemMatches++;   // неизвестный формат — считаем OEM
+        oemMatches++;
       }
     }
 
-    score += oemMatches  * 100;  // OEM — высший приоритет
+    score += oemMatches  * 100;
     score += aceaMatches * 40;
     score += apiMatches  * 30;
 
-    // Пессимизация если ни одного допуска не совпало
     if (normalizedSpecs.length > 0 && (oemMatches + aceaMatches + apiMatches) === 0) {
       score -= 50;
     }
 
-    // Объём канистры
+    // ── ФИКС БАГ 2а: объём ──────────────────────────────────────
+    // Старая логика давала +10 за канистру БОЛЬШЕ нужной — это неверно,
+    // клиент берёт лишнее масло и переплачивает.
+    // Новая: точное совпадение +40, больше нужного -10 (не критично),
+    // меньше нужного -30 (масла не хватит — худший вариант).
     if (targetVolume && item.volume != null) {
-      if (item.volume === targetVolume)      score += 40;
-      else if (item.volume > targetVolume)   score += 10;
-      else                                   score -= 20;
+      if (item.volume === targetVolume)      score += 40;  // точное попадание
+      else if (item.volume > targetVolume)   score -= 10;  // чуть больше — допустимо
+      else                                   score -= 30;  // меньше — масла не хватит
     }
+    // ── конец фикса
 
     // Приоритетный бренд клиента
     const itemBrand = (item.brand || "").toUpperCase();
@@ -176,11 +161,9 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
   scored.sort((a, b) => b._score - a._score);
 
   // ── Выбираем топ-3 с разными брендами ────────────────────────
-  // Если есть предпочтение бренда — он идёт первым
   const result     = [];
   const usedBrands = new Set();
 
-  // Сначала preferred brand
   if (preferredBrand) {
     const preferred = scored.find(i => i.brand.toUpperCase() === preferredBrand);
     if (preferred) {
@@ -189,7 +172,6 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
     }
   }
 
-  // Затем разные бренды по score
   for (const item of scored) {
     if (result.length >= 3) break;
     const b = item.brand.toUpperCase();
@@ -199,7 +181,6 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
     }
   }
 
-  // Добираем если не набрали 3
   if (result.length < 3) {
     for (const item of scored) {
       if (result.length >= 3) break;
@@ -207,7 +188,7 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
     }
   }
 
-  // ── Определяем предупреждения для каждой позиции ─────────────
+  // ── Определяем предупреждения ─────────────────────────────────
   return result.map(item => {
     const hasSpecMatch = (item._oem + item._acea + item._api) > 0;
     let warning = null;
@@ -245,7 +226,7 @@ function formatResult(item, warning = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// НОРМАЛИЗАЦИЯ XLSX (без изменений)
+// НОРМАЛИЗАЦИЯ XLSX
 // ─────────────────────────────────────────────────────────────
 async function normalizeOilCatalog(xlsxPath = path.join(__dirname, "main.xlsx")) {
   console.log("[oils] reading", xlsxPath);
