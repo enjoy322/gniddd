@@ -131,10 +131,6 @@ app.get("/oil/:vin", async (req, res) => {
     const tree = require("./tree.json");
     console.log(`[oil] ${car.brand} ${car.model} ${car.year} engine=${car.engine.code}`);
 
-    // Реальный объём двигателя из UPEC API
-    // ВАЖНО: никогда не берём volume из ответа GPT — он путает объём двигателя с объёмом заправки
-    const engineVolume = car.engine?.volume || null;
-
     const filtersPromise = getOriginalFilters(car);
 
     const url = await resolveUrl(car, tree);
@@ -147,16 +143,19 @@ app.get("/oil/:vin", async (req, res) => {
         filtersPromise
       ]);
 
+      // GPT-объём — это заправочный объём масла (НЕ рабочий объём двигателя)
+      const gptFillVolume = gptResult?.found ? (gptResult.volume || null) : null;
+
       const oilGpt = gptResult?.found
-        ? { volume: engineVolume, oil: { best: gptResult.best || [], alternative: gptResult.alternative || [] } }
+        ? { volume: gptFillVolume, oil: { best: gptResult.best || [], alternative: gptResult.alternative || [] } }
         : null;
 
       return res.json({
         car, url: null,
         source: gptResult?.found ? "gpt_global" : "not_found",
-        oil: null,       // левый блок «Источник» — нет данных
-        oil_gpt: oilGpt, // правый блок «ИИ»
-        recommendations: buildRecommendations(oilGpt, prefs, engineVolume),
+        oil: null,
+        oil_gpt: oilGpt,
+        recommendations: buildRecommendations(oilGpt, prefs, gptFillVolume),
         filters
       });
     }
@@ -172,26 +171,34 @@ app.get("/oil/:vin", async (req, res) => {
 
     const engine = findEngineBlock(blocks, car);
 
+    // GPT fill volume
+    const gptFillVolume = gptResult?.found ? (gptResult.volume || null) : null;
+
     // Правый блок «ИИ» — всегда из fallbackGlobal
     const oilGpt = gptResult?.found
-      ? { volume: engineVolume, oil: { best: gptResult.best || [], alternative: gptResult.alternative || [] } }
+      ? { volume: gptFillVolume, oil: { best: gptResult.best || [], alternative: gptResult.alternative || [] } }
       : null;
 
     // ── Парсер нашёл двигатель ────────────────────────────────────────────────
     if (engine) {
-      console.log(`[oil] source=parsed, site_volume=${engine.volume}, using engineVolume=${engineVolume}`);
+      // ЗАПРАВОЧНЫЙ объём берём из парсера (engine.volume), НЕ из car.engine.volume!
+      // engine.volume = 3.8 (заправочный, из столбца "Объём заливки")
+      // car.engine.volume = 1.5 (рабочий объём двигателя из UPEC API)
+      const parsedFillVolume = engine.volume || gptFillVolume || null;
+
+      console.log(`[oil] source=parsed, parsedFillVolume=${parsedFillVolume} (engine.volume=${engine.volume}, gptFillVolume=${gptFillVolume})`);
 
       const oilParsed = {
-        volume: engineVolume, // реальный объём двигателя, НЕ engine.volume с сайта
+        volume: parsedFillVolume,
         oil: { best: engine.oil.best, alternative: engine.oil.alternative }
       };
 
       return res.json({
         car, url,
         source: "parsed",
-        oil: oilParsed,   // левый блок «Источник» = парсер
-        oil_gpt: oilGpt,  // правый блок «ИИ» = GPT
-        recommendations: buildRecommendations(oilParsed, prefs, engineVolume),
+        oil: oilParsed,
+        oil_gpt: oilGpt,
+        recommendations: buildRecommendations(oilParsed, prefs, parsedFillVolume),
         filters
       });
     }
@@ -201,19 +208,20 @@ app.get("/oil/:vin", async (req, res) => {
     const gptPage = await fallbackFromPage(url, car);
 
     if (gptPage?.found) {
-      console.log(`[oil] source=gpt_html, gptPage.volume=${gptPage.volume}, using engineVolume=${engineVolume}`);
+      const pageFillVolume = gptPage.volume || gptFillVolume || null;
+      console.log(`[oil] source=gpt_html, pageFillVolume=${pageFillVolume}`);
 
       const oilPage = {
-        volume: engineVolume, // НЕ gptPage.volume
+        volume: pageFillVolume,
         oil: { best: gptPage.best || [], alternative: gptPage.alternative || [] }
       };
 
       return res.json({
         car, url,
         source: "gpt_html",
-        oil: oilPage,     // левый блок «Источник» = GPT читал страницу источника
-        oil_gpt: oilGpt,  // правый блок «ИИ» = GPT global
-        recommendations: buildRecommendations(oilPage, prefs, engineVolume),
+        oil: oilPage,
+        oil_gpt: oilGpt,
+        recommendations: buildRecommendations(oilPage, prefs, pageFillVolume),
         filters
       });
     }
@@ -224,9 +232,9 @@ app.get("/oil/:vin", async (req, res) => {
     return res.json({
       car, url,
       source: gptResult?.found ? "gpt_global" : "not_found",
-      oil: null,        // левый блок «Источник» — нет данных
-      oil_gpt: oilGpt,  // правый блок «ИИ»
-      recommendations: buildRecommendations(oilGpt, prefs, engineVolume),
+      oil: null,
+      oil_gpt: oilGpt,
+      recommendations: buildRecommendations(oilGpt, prefs, gptFillVolume),
       filters
     });
 

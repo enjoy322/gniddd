@@ -281,16 +281,108 @@
 
     .oil-card-warning { font-size: 11px; color: #92400e; background: #fef3c7; border-radius: 5px; padding: 4px 10px; margin: 6px 14px 0; }
 
-    /* Фильтры */
-    .filter-group { margin-bottom: 14px; }
-    .filter-group-hd { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 6px; }
-    .filter-item { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); }
-    .filter-item:last-child { border-bottom: none; }
-    .filter-code { font-family: 'Inter', monospace; font-size: 14px; font-weight: 600; cursor: pointer; color: var(--text); border-radius: 4px; padding: 1px 4px; transition: background .15s, color .15s; }
-    .filter-code:hover { background: #f0f0ee; color: var(--blue); }
-    .filter-count { font-size: 12px; color: var(--soft); }
-    .filter-comment { font-size: 11px; color: var(--soft); margin-left: auto; }
+    /* ── Фильтры ТО — горизонтальная витрина ── */
+    .filter-showcase {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    .filter-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .filter-card-hd {
+      padding: 12px 16px 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .filter-card-ico {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .filter-card-ico.oil    { background: #fef3c7; }
+    .filter-card-ico.air    { background: #dbeafe; }
+    .filter-card-ico.cabin  { background: #d1fae5; }
+    .filter-card-ico.spark  { background: #fce7f3; }
+    .filter-card-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .filter-card-body {
+      padding: 12px 16px;
+      flex: 1;
+    }
+    .filter-part {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .filter-part:last-child { border-bottom: none; }
+    .filter-part-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .filter-part-code {
+      font-family: 'Inter', monospace;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      cursor: pointer;
+      border-radius: 5px;
+      padding: 3px 8px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      transition: all .15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .filter-part-code:hover {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+      color: var(--blue);
+    }
+    .filter-part-code .copy-ico {
+      opacity: 0;
+      transition: opacity .15s;
+    }
+    .filter-part-code:hover .copy-ico {
+      opacity: 1;
+    }
+    .filter-part-qty {
+      font-size: 11px;
+      color: var(--soft);
+      font-weight: 500;
+    }
+    .filter-part-comment {
+      font-size: 11px;
+      color: var(--soft);
+      font-style: italic;
+    }
+    .filter-empty {
+      font-size: 12px;
+      color: var(--soft);
+      font-style: italic;
+      padding: 8px 0;
+    }
 
+    @media (max-width: 1100px) { .filter-showcase { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 900px) { .rec-grid { grid-template-columns: 1fr 1fr; } }
     @media (max-width: 680px) {
       header, .input-bar { padding-left: 14px; padding-right: 14px; }
@@ -302,6 +394,7 @@
       .vin-ext-btns { flex-wrap: wrap; }
       .oil-cols { grid-template-columns: 1fr; }
       .oil-col + .oil-col { border-left: none; border-top: 2px solid var(--border); padding-left: 0; padding-top: 12px; margin-top: 4px; }
+      .filter-showcase { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -422,9 +515,9 @@
   <div class="rec-section" id="filterSection">
     <div class="rec-hd">
       <span class="rec-hd-ico">🔩</span>
-      <span class="rec-hd-ttl">Оригинальные артикулы</span>
+      <span class="rec-hd-ttl">Оригинальные артикулы для ТО</span>
     </div>
-    <div id="filterGrid"></div>
+    <div class="filter-showcase" id="filterGrid"></div>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -579,9 +672,6 @@
         '<div>' + fields.map(f => '<div class="car-field"><span class="cf-key">' + f.k + ':</span><span class="cf-val">' + f.v + '</span></div>').join('') + '</div>';
     }
 
-    // ── Главная функция рендера масла ─────────────────────────────────────────
-    // oil     = данные источника (парсер или GPT читавший страницу) → ЛЕВЫЙ блок
-    // oil_gpt = данные GPT global → ПРАВЫЙ блок
     async function loadLiquids(vin) {
       const localVin = vin;
       setLoading(liquids, 'Запрашиваем данные…');
@@ -602,9 +692,7 @@
           return;
         }
 
-        // ЛЕВЫЙ блок = источник (парсер / GPT читал страницу источника)
         const oilSrc = data.oil;
-        // ПРАВЫЙ блок = ИИ (GPT global — второе независимое мнение)
         const oilGpt = data.oil_gpt;
 
         const sourceUrl = data.url || null;
@@ -619,8 +707,7 @@
 
         const volume = oilSrc?.volume || oilGpt?.volume || null;
 
-        // Рендер одного столбца с данными масла
-        function renderCol(oilData, compact) {
+        function renderCol(oilData) {
           if (!oilData) return '<p class="oil-empty-col">Нет данных</p>';
           const best = oilData.oil?.best        || [];
           const alt  = oilData.oil?.alternative || [];
@@ -630,17 +717,14 @@
             return arr.map(item => {
               const specs     = item.specs     || [];
               const viscosity = item.viscosity || [];
-              const pd = compact ? 'padding:7px 10px;margin-bottom:4px' : '';
-              const fs = compact ? 'font-size:11px' : '';
-              const kw = compact ? 'min-width:56px;font-size:11px' : '';
-              return '<div class="oil-item" style="' + pd + '">' +
+              return '<div class="oil-item">' +
                 (specs.length
-                  ? '<div class="oil-row"><span class="oil-key" style="' + kw + '">Допуски:</span><div class="badges">' +
-                    specs.map(s => '<span class="badge" style="' + fs + '">' + esc(s) + '</span>').join('') +
+                  ? '<div class="oil-row"><span class="oil-key">Допуски:</span><div class="badges">' +
+                    specs.map(s => '<span class="badge">' + esc(s) + '</span>').join('') +
                     '</div></div>' : '') +
                 (viscosity.length
-                  ? '<div class="oil-row"><span class="oil-key" style="' + kw + '">Вязкость:</span><div class="badges">' +
-                    viscosity.map(v => '<span class="badge" style="' + fs + '">' + esc(v) + '</span>').join('') +
+                  ? '<div class="oil-row"><span class="oil-key">Вязкость:</span><div class="badges">' +
+                    viscosity.map(v => '<span class="badge">' + esc(v) + '</span>').join('') +
                     '</div></div>' : '') +
                 '</div>';
             }).join('');
@@ -650,7 +734,6 @@
                  (alt.length  ? '<div class="oil-section-lbl">Альтернатива</div>'  + renderItems(alt)  : '');
         }
 
-        // Подпись левого блока зависит от источника
         const srcLabel = data.source === 'parsed'
           ? '📄 По источнику'
           : data.source === 'gpt_html'
@@ -659,22 +742,17 @@
 
         liquids.innerHTML =
           '<div class="oil-title">Масло двигателя</div>' +
-          (volume ? '<div class="oil-volume">Объём: <strong>' + volume + ' л</strong></div>' : '') +
+          (volume ? '<div class="oil-volume">Заправочный объём: <strong>' + volume + ' л</strong></div>' : '') +
 
           '<div class="oil-cols">' +
-
-            // ЛЕВЫЙ = Источник
             '<div class="oil-col">' +
               '<div class="oil-col-label src-label">' + srcLabel + '</div>' +
-              renderCol(oilSrc, false) +
+              renderCol(oilSrc) +
             '</div>' +
-
-            // ПРАВЫЙ = ИИ
             '<div class="oil-col">' +
               '<div class="oil-col-label gpt-label">🤖 По данным ИИ</div>' +
-              renderCol(oilGpt, false) +
+              renderCol(oilGpt) +
             '</div>' +
-
           '</div>' +
 
           (sourceUrl
@@ -700,29 +778,44 @@
       if (!filters) { sec.classList.remove('visible'); return; }
 
       const GROUPS = [
-        { key: 'oil_filter',   icon: '🛢️', label: 'Масляный фильтр' },
-        { key: 'air_filter',   icon: '💨', label: 'Воздушный фильтр' },
-        { key: 'cabin_filter', icon: '🌬️', label: 'Салонный фильтр' },
-        { key: 'spark_plug',   icon: '⚡', label: 'Свечи зажигания' },
+        { key: 'oil_filter',   icon: '🛢️', label: 'Масляный фильтр',   cls: 'oil' },
+        { key: 'air_filter',   icon: '💨', label: 'Воздушный фильтр',  cls: 'air' },
+        { key: 'cabin_filter', icon: '🌬️', label: 'Салонный фильтр',   cls: 'cabin' },
+        { key: 'spark_plug',   icon: '⚡', label: 'Свечи зажигания',   cls: 'spark' },
       ];
 
-      const rows = GROUPS.map(g => {
+      let hasAny = false;
+
+      const cards = GROUPS.map(g => {
         const items = filters[g.key] || [];
-        if (!items.length) return '';
-        return '<div class="filter-group">' +
-          '<div class="filter-group-hd">' + g.icon + ' ' + g.label + '</div>' +
-          items.map(it =>
-            '<div class="filter-item">' +
-              '<span class="filter-code" onclick="copyArticle(this,\'' + esc(it.partCode) + '\')">' + esc(it.partCode) + '</span>' +
-              (it.count > 1 ? '<span class="filter-count">× ' + it.count + '</span>' : '') +
-              (it.comment ? '<span class="filter-comment">' + esc(it.comment) + '</span>' : '') +
-            '</div>'
-          ).join('') +
+
+        return '<div class="filter-card">' +
+          '<div class="filter-card-hd">' +
+            '<div class="filter-card-ico ' + g.cls + '">' + g.icon + '</div>' +
+            '<div class="filter-card-title">' + g.label + '</div>' +
+          '</div>' +
+          '<div class="filter-card-body">' +
+            (items.length
+              ? items.map(it => {
+                  hasAny = true;
+                  return '<div class="filter-part">' +
+                    '<div class="filter-part-left">' +
+                      '<span class="filter-part-code" onclick="copyArticle(this,\'' + esc(it.partCode) + '\')">' +
+                        esc(it.partCode) +
+                        '<svg class="copy-ico" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+                      '</span>' +
+                      (it.count > 1 ? '<span class="filter-part-qty">× ' + it.count + '</span>' : '') +
+                    '</div>' +
+                    (it.comment ? '<span class="filter-part-comment">' + esc(it.comment) + '</span>' : '') +
+                  '</div>';
+                }).join('')
+              : '<div class="filter-empty">Нет данных</div>'
+            ) +
+          '</div>' +
         '</div>';
       }).join('');
 
-      if (!rows) { sec.classList.remove('visible'); return; }
-      grid.innerHTML = rows;
+      grid.innerHTML = cards;
       sec.classList.add('visible');
     }
 

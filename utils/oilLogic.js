@@ -23,7 +23,7 @@ function pickViscosity(bestItems, altItems) {
 }
 
 // fillVolume = заправочный объём масла в литрах (3.8л для Haval Jolion)
-// Это НЕ рабочий объём двигателя (1.5л) — берётся из парсера или GPT
+// Это НЕ рабочий объём двигателя (1.5л)
 function buildRecommendations(oil, prefs = {}, fillVolume = null) {
   try {
     const oilData   = oil?.oil || {};
@@ -46,7 +46,7 @@ function buildRecommendations(oil, prefs = {}, fillVolume = null) {
       specs.push(...(targetBlock.viscosity || []));
     }
 
-    // fillVolume — заправочный объём (3.8л) → используем для подбора канистры нужного размера
+    // fillVolume — заправочный объём (3.8л) → используем для подбора канистры
     // Если нет — берём из oil.volume (тот же заправочный, записанный в объект)
     const oilVolume = fillVolume || oil?.volume || null;
 
@@ -83,66 +83,123 @@ ${generations.map((g, i) => `${i}: ${g}`).join("\n")}
   return `https://podbormasla.ru/${brand}/${model}/${generations[index]}/`;
 }
 
-// ── fallbackFromPage ──
+// ── fallbackFromPage — GPT читает HTML ──
 async function fallbackFromPage(url, car) {
   console.log(`[fallbackFromPage] url=${url} engine=${car.engine.code}`);
   const { data } = await axios.get(url, { headers: { "User-Agent": "Mozilla/5.0" } });
 
+  const engineCode = car.engine?.code || "неизвестен";
+
   const prompt = `
-Ты автоэксперт по маслам. Вот HTML страницы (первые 15000 символов):
-${data.slice(0, 15000)}
+Ты автоэксперт по подбору моторных масел. Тебе дан HTML-код страницы с таблицей масел.
 
-Найди данные для двигателя: ${car.engine.code}
+Автомобиль: ${car.brand} ${car.model} ${car.year}
+Код двигателя: ${engineCode}
 
-volume — это заправочный объём масла в двигатель в литрах (НЕ рабочий объём двигателя).
+Найди в таблице строку "МАСЛО в ДВИГАТЕЛЬ" для двигателя ${engineCode}.
 
-Верни строго JSON без markdown:
+ВАЖНО:
+- volume — это ЗАПРАВОЧНЫЙ объём масла в двигатель (сколько литров масла заливать при замене). 
+  Обычно это значение от 2.5 до 8 литров. Оно указано в столбце "Объём заливки".
+  НЕ ПУТАЙ с рабочим объёмом двигателя (${car.engine.volume}л) — это другое!
+- specs — допуски/спецификации масла (ILSAC GF-5, ACEA C2, API SN, VW 502.00 и т.д.)
+- viscosity — вязкость масла (5W-30, 0W-20, 5W-40 и т.д.)
+
+Если есть разделение "Лучший выбор" / "Альтернатива" — используй его.
+Если есть разделение по температуре (Ниже/Выше -30°C) — помести все варианты в best.
+
+Верни строго JSON без markdown, без комментариев:
 {
   "found": true,
   "volume": 3.8,
-  "best": [{ "specs": ["ACEA A3", "RN 0710"], "viscosity": ["5W-30"] }],
-  "alternative": [{ "specs": [], "viscosity": ["5W-40"] }]
+  "best": [{"specs": ["ILSAC GF-5", "ACEA C2"], "viscosity": ["0W-30", "5W-30"]}],
+  "alternative": []
 }
 
-Если двигатель не найден — верни: { "found": false }
+Если двигатель ${engineCode} не найден на странице — верни: {"found": false}
+
+HTML (первые 15000 символов):
+${data.slice(0, 15000)}
 `.trim();
 
   const response = await openai.responses.create({ model: "gpt-5.4-mini", input: prompt });
   try {
-    return JSON.parse(response.output_text.replace(/```json|```/g, "").trim());
+    const text = response.output_text.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(text);
+    console.log(`[fallbackFromPage] result: found=${parsed.found} volume=${parsed.volume}`);
+    return parsed;
   } catch (e) {
     console.error("[fallbackFromPage] parse error:", e.message);
+    console.error("[fallbackFromPage] raw:", response.output_text?.slice(0, 300));
     return null;
   }
 }
 
-// ── fallbackGlobal ──
+// ── fallbackGlobal — GPT по знаниям ──
 async function fallbackGlobal(car) {
   console.log(`[fallbackGlobal] ${car.brand} ${car.model} engine=${car.engine.code}`);
 
+  const engineCode = car.engine?.code || "неизвестен";
+  const engineVol  = car.engine?.volume || "?";
+  const engineType = car.engine?.type || "бензин";
+  const power      = car.power_hp || "?";
+
   const prompt = `
-Ты автоэксперт по моторным маслам.
-Автомобиль: ${car.brand} ${car.model} ${car.year}, двигатель ${car.engine.code} ${car.engine.volume}л ${car.engine.type}, ${car.power_hp} л.с.
+Ты профессиональный автоэксперт по моторным маслам. Подбери моторное масло для автомобиля:
 
-Подбери моторное масло. 
-volume — это заправочный объём масла в двигатель в литрах (НЕ рабочий объём двигателя ${car.engine.volume}л).
+Марка: ${car.brand}
+Модель: ${car.model}
+Год: ${car.year}
+Двигатель: ${engineCode}, ${engineVol}л, ${engineType}, ${power} л.с.
 
-Верни строго JSON без markdown:
+ЗАДАЧА: определи допуски и вязкость моторного масла по данным производителя.
+
+ВАЖНЫЕ ПРАВИЛА:
+1. volume — это ЗАПРАВОЧНЫЙ объём масла при замене (сколько литров масла заливать в двигатель).
+   Это НЕ рабочий объём двигателя (${engineVol}л). Заправочный объём обычно от 2.5 до 8 литров.
+   Если не уверен точно — укажи наиболее вероятное значение.
+
+2. specs — только РЕАЛЬНЫЕ допуски для этого двигателя. 
+   Для китайских авто (Haval, Chery, Geely, Changan) часто: ILSAC GF-5, ACEA C2, ACEA C5, API SP.
+   Для VAG: VW 502.00, VW 504.00.
+   Для Hyundai/Kia: API SP, ILSAC GF-5/GF-6.
+   НЕ ПРИДУМЫВАЙ допуски которых нет у этого двигателя!
+
+3. viscosity — рекомендованная вязкость (5W-30, 0W-20 и т.д.)
+
+4. Если есть несколько вариантов — "Лучший выбор" и "Альтернатива".
+
+Верни СТРОГО JSON, без markdown, без пояснений:
 {
   "found": true,
   "volume": 3.8,
-  "best": [{ "specs": ["ACEA A3/B4", "VW 502.00"], "viscosity": ["5W-30"] }],
-  "alternative": [{ "specs": ["ACEA A3/B4"], "viscosity": ["5W-40"] }]
+  "best": [{"specs": ["ILSAC GF-5", "ACEA C2"], "viscosity": ["5W-30"]}],
+  "alternative": [{"specs": ["ILSAC GF-5"], "viscosity": ["0W-30"]}]
 }
 
-Если не можешь — верни: { "found": false }
+Если не можешь определить данные — верни: {"found": false}
 `.trim();
 
   const response = await openai.responses.create({ model: "gpt-5.4-mini", input: prompt });
   try {
-    return JSON.parse(response.output_text.replace(/```json|```/g, "").trim());
+    const text = response.output_text.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(text);
+
+    // Валидация: volume не должен быть равен рабочему объёму двигателя
+    if (parsed.found && parsed.volume && car.engine?.volume) {
+      const eng = parseFloat(car.engine.volume);
+      if (parsed.volume === eng || Math.abs(parsed.volume - eng) < 0.2) {
+        console.log(`[fallbackGlobal] WARNING: GPT returned volume=${parsed.volume} which equals engine displacement ${eng}! Likely wrong.`);
+        // Не доверяем этому volume — ставим null, пусть берётся из парсера
+        parsed.volume = null;
+      }
+    }
+
+    console.log(`[fallbackGlobal] result: found=${parsed.found} volume=${parsed.volume}`);
+    return parsed;
   } catch (e) {
     console.error("[fallbackGlobal] parse error:", e.message);
+    console.error("[fallbackGlobal] raw:", response.output_text?.slice(0, 300));
     return null;
   }
 }
