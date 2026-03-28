@@ -116,24 +116,19 @@ const VIN_PROMPTS = [
 async function extractVINwithPrompt(filePath, promptText) {
   const base64 = fs.readFileSync(filePath).toString("base64");
 
-  const response = await openai.responses.create({
-    model: "gpt-5.4-mini",
-    input: [{
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    max_tokens: 64,
+    messages: [{
       role: "user",
       content: [
-        {
-          type: "input_text",
-          text: promptText
-        },
-        {
-          type:      "input_image",
-          image_url: `data:image/jpeg;base64,${base64}`
-        }
+        { type: "text",      text: promptText },
+        { type: "image_url", image_url: { url: `data:image/jpeg;base64,${base64}`, detail: "high" } }
       ]
     }]
   });
 
-  return normalizeVIN(response.output_text.trim());
+  return normalizeVIN(response.choices[0].message.content.trim());
 }
 
 async function extractVIN(filePath) {
@@ -188,12 +183,13 @@ ${generations.map((g, i) => `${i}: ${g}`).join("\n")}
 Верни ТОЛЬКО индекс (число), который лучше всего подходит. Без текста, только число.
 `.trim();
 
-  const response = await openai.responses.create({
-    model: "gpt-5.4-mini",
-    input: prompt
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    max_tokens: 10,
+    messages: [{ role: "user", content: prompt }]
   });
 
-  let index = parseInt(response.output_text.trim());
+  let index = parseInt(response.choices[0].message.content.trim());
 
   if (isNaN(index) || index < 0 || index >= generations.length) {
     console.log("[resolveUrl] bad index from GPT, fallback to 0");
@@ -222,6 +218,7 @@ ${data.slice(0, 15000)}
 Верни строго JSON без markdown:
 {
   "found": true,
+  "volume": 5.3,
   "best": [
     { "specs": ["ACEA A3"], "viscosity": ["5W-40"] }
   ],
@@ -233,13 +230,14 @@ ${data.slice(0, 15000)}
 Если двигатель не найден — верни: { "found": false }
 `.trim();
 
-  const response = await openai.responses.create({
-    model: "gpt-5.4-mini",
-    input: prompt
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    max_tokens: 1000,
+    messages: [{ role: "user", content: prompt }]
   });
 
   try {
-    const text = response.output_text.replace(/```json|```/g, "").trim();
+    const text = response.choices[0].message.content.replace(/```json|```/g, "").trim();
     return JSON.parse(text);
   } catch (e) {
     console.error("[fallbackFromPage] JSON parse error:", e.message);
@@ -277,13 +275,14 @@ async function fallbackGlobal(car) {
 Только JSON, никакого текста вокруг.
 `.trim();
 
-  const response = await openai.responses.create({
-    model: "gpt-5.4-mini",
-    input: prompt
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    max_tokens: 1000,
+    messages: [{ role: "user", content: prompt }]
   });
 
   try {
-    const text = response.output_text.replace(/```json|```/g, "").trim();
+    const text = response.choices[0].message.content.replace(/```json|```/g, "").trim();
     return JSON.parse(text);
   } catch (e) {
     console.error("[fallbackGlobal] JSON parse error:", e.message);
@@ -365,53 +364,22 @@ app.get("/car-info/:vin", async (req, res) => {
   }
 });
 
-// Приоритет вязкостей для умеренного климата (RU/СНГ): 5W-30 > 5W-40 > 10W-40 > 0W-20 > остальные
-const VISCOSITY_PRIORITY = ["5W-30", "5W-40", "10W-40", "10W-30", "0W-30", "0W-40", "0W-20", "5W-50"];
-
-function pickViscosity(bestItems, altItems) {
-  // Собираем все доступные вязкости из best + alternative
-  const allViscosities = [];
-  for (const item of [...bestItems, ...altItems]) {
-    for (const v of (item.viscosity || [])) {
-      const norm = v.replace(/\s/g, "").toUpperCase();
-      if (!allViscosities.includes(norm)) allViscosities.push(norm);
-    }
-  }
-
-  if (!allViscosities.length) return null;
-
-  // Ищем по приоритету
-  for (const pref of VISCOSITY_PRIORITY) {
-    if (allViscosities.includes(pref)) return pref;
-  }
-
-  // Если нет ни одного из приоритетного списка — берём первую из best
-  return bestItems[0]?.viscosity?.[0] || allViscosities[0] || null;
-}
-
 // ── Собирает рекомендации из каталога по данным масла ──
 function buildRecommendations(oil, car) {
   try {
     const specs     = [];
     const oilData   = oil?.oil || {};
-    const bestItems = oilData?.best        || [];
-    const altItems  = oilData?.alternative || [];
+    const bestItems = oilData?.best || [];
 
     for (const item of bestItems) {
       specs.push(...(item.specs     || []));
       specs.push(...(item.viscosity || []));
     }
 
-    // БАГ 2 FIX: oil.volume — это объём масла для ТО (литры заливки),
-    // car.engine.volume — рабочий объём двигателя. Используем правильный.
-    const oilVolume = oil?.volume || null;
+    const viscosity    = bestItems[0]?.viscosity?.[0] || null;
+    const engineVolume = car?.engine?.volume           || null;
 
-    // БАГ 4 FIX: выбираем вязкость с учётом региональных предпочтений
-    const viscosity = pickViscosity(bestItems, altItems);
-
-    console.log(`[oil] viscosity chosen: ${viscosity} (oil volume: ${oilVolume}л)`);
-
-    return matchOil({ specs, volume: oilVolume, viscosity });
+    return matchOil({ specs, volume: engineVolume, viscosity });
   } catch (e) {
     console.error("[oil] matchOil error:", e.message);
     return [];
@@ -476,7 +444,7 @@ app.get("/oil/:vin", async (req, res) => {
 
     if (gptPage?.found) {
       const oil = {
-        volume: null,
+        volume: gptPage.volume || null,
         oil: { best: gptPage.best || [], alternative: gptPage.alternative || [] }
       };
       return res.json({

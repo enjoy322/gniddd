@@ -167,16 +167,21 @@
 
     /* ── ЛОГОТИП БРЕНДА ── */
     .oil-card-logo {
-      height: 22px;
+      height: 20px;
       width: auto;
       max-width: 80px;
       object-fit: contain;
       object-position: left center;
       opacity: 0.85;
       display: block;
-      flex-shrink: 0;
     }
     .oil-card-logo.hidden { display: none; }
+
+    /* Нижняя строка шапки карточки — логотип */
+    .oil-card-logo-row {
+      margin-top: 8px;
+      min-height: 20px;
+    }
 
     /* ── КАРТОЧКА МАСЛА ── */
     .oil-card {
@@ -193,19 +198,11 @@
       padding: 14px 16px 10px;
       border-bottom: 1px solid var(--border);
     }
-
     .oil-card-top-main {
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
       gap: 12px;
-      margin-bottom: 8px;
-    }
-
-    .oil-card-top-logo {
-      display: flex;
-      align-items: center;
-      min-height: 22px;
     }
 
     .oil-card-brand {
@@ -805,17 +802,16 @@
         ...(r.specs?.api   || []),
         ...(r.specs?.acea  || []),
         ...(r.specs?.ilsac || []),
-      ].slice(0, 4);
+      ].slice(0, 4); // не больше 4 чипов
 
-      const logoSrc  = brandLogo(r.brand);
-      // onerror: прячем img чтобы не было мерцания при отсутствующем файле
+      const logoSrc = brandLogo(r.brand);
       const logoHtml = logoSrc
         ? '<img class="oil-card-logo" src="' + logoSrc + '" alt="' + esc(r.brand) + '" onerror="this.classList.add(\'hidden\')">'
         : '';
 
       return '<div class="oil-card">' +
 
-        // Шапка: ряд 1 — [бренд+артикул] | [цена]
+        // Шапка: [бренд+артикул | цена], затем [логотип]
         '<div class="oil-card-top">' +
           '<div class="oil-card-top-main">' +
             '<div>' +
@@ -827,8 +823,7 @@
             '</div>' +
             '<div class="oil-card-price">' + formatPrice(r.price) + ' <span>₽</span></div>' +
           '</div>' +
-          // Ряд 2 — логотип бренда (отдельно, не мешает цене)
-          '<div class="oil-card-top-logo">' + logoHtml + '</div>' +
+          (logoHtml ? '<div class="oil-card-logo-row">' + logoHtml + '</div>' : '') +
         '</div>' +
 
         // Тело: описание + чипы
@@ -847,7 +842,7 @@
           '</div>' +
         '</div>' +
 
-        // Футер: остаток + тип масла
+        // Футер: остаток + объём
         '<div class="oil-card-footer">' +
           '<div class="stock-badge">' +
             '<div class="stock-dot ' + (stockOk ? 'ok' : 'low') + '"></div>' +
@@ -885,8 +880,9 @@
     }
 
     // ── ЛОГОТИПЫ БРЕНДОВ ──────────────────────────────────────
+    // Ключи — UPPERCASE бренда, значения — точные имена файлов без .webp
     const BRAND_LOGOS = {
-      'LIQUI MOLY':    'LIQUI MOLY',
+      'LIQUI MOLY':    'liquimoly',
       'CASTROL':       'castrol',
       'MOBIL':         'mobil',
       'SHELL':         'Shell',
@@ -900,30 +896,29 @@
       'REPSOL':        'repsol',
       'BARDAHL':       'bardahl',
       'TAKAYAMA':      'takayma',
-      'HYUNDAI XTEER': 'HYUNDAI XTEER',
+      'HYUNDAI XTEER': 'hyundayxteer',
       'TOYOTA':        'toyota',
       'LEXUS':         'lexus',
-      'MOBIS':         'no',
       'NISSAN':        'nissan',
       'MITSUBISHI':    'mitsubishi',
-      'VAG':           'Volkswagen',
+      'VAG':           'volkswagen',
+      'VOLKSWAGEN':    'volkswagen',
       'GM':            'gm',
       'IDEMITSU':      'idemitsu',
       'REINWELL':      'reinwell',
-      'PROFI-CAR':     'PROFI-CAR',
+      'PROFI-CAR':     'profi-car',
       'FURO':          'furo',
       'PEXOL':         'pexol',
       'COMMA':         'comma',
       'HI-GEAR':       'hi-gear',
-      'LAVR':          'no',
-      'ВМПАВТО':       'ВМПАВТО',
+      'ВМПАВТО':       'вмпавто',
     };
 
     function brandLogo(brand) {
       const key  = (brand || '').toUpperCase();
-      const file = BRAND_LOGOS[key] || BRAND_LOGOS[brand] || null;
-      // Если бренд неизвестен или явно помечен как 'no' — не рендерим img
-      if (!file || file === 'no') return null;
+      const file = BRAND_LOGOS[key] || null;
+      // null = логотип неизвестен, не рендерим img вообще
+      if (!file) return null;
       return '/logo/' + file + '.webp';
     }
 
