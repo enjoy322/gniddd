@@ -8,7 +8,7 @@ const https   = require("https");
 const { parseEngineBlocks, findEngineBlock } = require("./utils/parseOil");
 const { extractVIN, normalizeVIN }           = require("./utils/ocr");
 const { buildRecommendations, resolveUrl, fallbackFromPage, fallbackGlobal } = require("./utils/oilLogic");
-const { findFilters }                        = require("./utils/parseFilters"); // 👈 ФИЛЬТРЫ
+const { findFilters }                        = require("./utils/parseFilters");
 
 const app = express();
 app.use(express.json());
@@ -115,14 +115,13 @@ app.get("/oil/:vin", async (req, res) => {
     try { car = await fetchCarInfo(req.params.vin); }
     catch (e) {
       if (e.name === "CarNotFoundError")
-        return res.json({ car: null, url: null, source: "car_not_found", oil: null, recommendations: [], filters: null });
+        return res.json({ car: null, url: null, source: "car_not_found", oil: null, oil_source: null, recommendations: [], filters: null });
       throw e;
     }
 
     const tree = require("./tree.json");
     console.log(`[oil] ${car.brand} ${car.model} ${car.year} engine=${car.engine.code}`);
 
-    // 👇 Ищем фильтры параллельно с маслом — не блокирует основной флоу
     const filtersPromise = Promise.resolve(findFilters(car));
 
     const url = await resolveUrl(car, tree);
@@ -132,7 +131,7 @@ app.get("/oil/:vin", async (req, res) => {
       const gpt = await fallbackGlobal(car);
       const oil = gpt?.found ? { volume: gpt.volume||null, oil: { best: gpt.best||[], alternative: gpt.alternative||[] } } : null;
       const filters = await filtersPromise;
-      return res.json({ car, url: null, source: gpt?.found ? "gpt_global" : "not_found", oil, recommendations: buildRecommendations(oil), filters });
+      return res.json({ car, url: null, source: gpt?.found ? "gpt_global" : "not_found", oil, oil_source: null, recommendations: buildRecommendations(oil), filters });
     }
 
     console.log(`[oil] parsing ${url}`);
@@ -142,7 +141,8 @@ app.get("/oil/:vin", async (req, res) => {
     if (engine) {
       console.log("[oil] found via parser");
       const filters = await filtersPromise;
-      return res.json({ car, url, source: "parsed", oil: engine, recommendations: buildRecommendations(engine), filters });
+      // oil_source = данные с сайта (парсер), oil = те же данные (единственный источник)
+      return res.json({ car, url, source: "parsed", oil: engine, oil_source: engine, recommendations: buildRecommendations(engine), filters });
     }
 
     console.log("[oil] engine not found → fallbackFromPage");
@@ -150,7 +150,7 @@ app.get("/oil/:vin", async (req, res) => {
     if (gptPage?.found) {
       const oil = { volume: gptPage.volume||null, oil: { best: gptPage.best||[], alternative: gptPage.alternative||[] } };
       const filters = await filtersPromise;
-      return res.json({ car, url, source: "gpt_html", oil, recommendations: buildRecommendations(oil), filters });
+      return res.json({ car, url, source: "gpt_html", oil, oil_source: null, recommendations: buildRecommendations(oil), filters });
     }
 
     console.log("[oil] page fallback failed → fallbackGlobal");
@@ -158,11 +158,11 @@ app.get("/oil/:vin", async (req, res) => {
     if (gptGlobal?.found) {
       const oil = { volume: gptGlobal.volume||null, oil: { best: gptGlobal.best||[], alternative: gptGlobal.alternative||[] } };
       const filters = await filtersPromise;
-      return res.json({ car, url, source: "gpt_global", oil, recommendations: buildRecommendations(oil), filters });
+      return res.json({ car, url, source: "gpt_global", oil, oil_source: null, recommendations: buildRecommendations(oil), filters });
     }
 
     const filters = await filtersPromise;
-    res.json({ car, url, source: "not_found", oil: null, recommendations: [], filters });
+    res.json({ car, url, source: "not_found", oil: null, oil_source: null, recommendations: [], filters });
 
   } catch (e) {
     console.error("[oil] error:", e.message);

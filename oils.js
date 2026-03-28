@@ -31,7 +31,7 @@ const VISCOSITY_PRIORITY = [
 // ─────────────────────────────────────────────────────────────
 function pickCanisterVolume(oilVolume) {
   if (!oilVolume) return null;
-  const standard = [1, 2, 3, 4, 5, 6, 7, 8, 10, 20];
+  const standard = [4, 5, 6, 7, 8, 10, 20];
   for (const vol of standard) {
     if (vol >= oilVolume) return vol;
   }
@@ -62,33 +62,21 @@ function clean(v) {
 
 // ─────────────────────────────────────────────────────────────
 // РАЗБОР ДОПУСКА НА СОСТАВНЫЕ ЧАСТИ
-// "ACEAA3/B4" → ["A3", "B4"]
-// "ACEAA5"    → ["A5"]
-// "APIA SN"   → ["SN"]  (после нормализации "APISN" → ["SN"])
 // ─────────────────────────────────────────────────────────────
 function parseAceaParts(normalized) {
-  // normalized вида "ACEAA3/B4" или "ACEAA5/B5" или "ACEAA3"
   const m = normalized.match(/^ACEA([A-Z]\d(?:\/[A-Z]\d)*)$/);
   if (!m) return null;
-  return m[1].split("/"); // ["A3", "B4"] или ["A5"]
+  return m[1].split("/");
 }
 
 function parseApiParts(normalized) {
-  // normalized вида "APISN/CF" или "APISL"
   const m = normalized.match(/^API([A-Z]{2}(?:\/[A-Z]{2})*)$/);
   if (!m) return null;
-  return m[1].split("/"); // ["SN", "CF"] или ["SL"]
+  return m[1].split("/");
 }
 
 // ─────────────────────────────────────────────────────────────
-// СОВМЕСТИМОСТЬ ДОПУСКОВ v2
-//
-// Правила:
-// 1. ACEA A5 совместим с ACEA A5/B5 (и наоборот) — проверяем пересечение частей
-// 2. ACEA C2 и ACEA A5 — РАЗНЫЕ классы (C — для DPF/TWC, A — обычные)
-//    Они НЕ взаимозаменяемы → не совпадают
-// 3. ILSAC GF-N: кандидат с бо́льшим номером покрывает меньший
-// 4. API SN совместим с API SN/CF
+// СОВМЕСТИМОСТЬ ДОПУСКОВ
 // ─────────────────────────────────────────────────────────────
 function isSpecCompatible(required, candidate) {
   if (!required || !candidate) return false;
@@ -99,23 +87,18 @@ function isSpecCompatible(required, candidate) {
   const candAcea = parseAceaParts(candidate);
 
   if (reqAcea && candAcea) {
-    // Есть пересечение хотя бы по одной части
-    // НО: A-класс и C-класс не совместимы!
-    // A1,A3,A5 — бензин без DPF; C1,C2,C3 — с DPF
-    const reqClasses  = reqAcea.map(p => p[0]);   // ["A"] или ["C"]
+    const reqClasses  = reqAcea.map(p => p[0]);
     const candClasses = candAcea.map(p => p[0]);
 
-    // Если классы разные (A vs C) — не совместимы
     const reqHasA  = reqClasses.some(c => c === "A");
     const reqHasC  = reqClasses.some(c => c === "C");
     const candHasA = candClasses.some(c => c === "A");
     const candHasC = candClasses.some(c => c === "C");
 
     if ((reqHasA && candHasC && !candHasA) || (reqHasC && candHasA && !candHasC)) {
-      return false; // C2 ≠ A5
+      return false;
     }
 
-    // Проверяем пересечение по конкретным кодам
     return reqAcea.some(r => candAcea.includes(r));
   }
 
@@ -138,7 +121,6 @@ function isSpecCompatible(required, candidate) {
 
 // ─────────────────────────────────────────────────────────────
 // MATCHOIL — основная функция подбора
-// prefs: { viscosity: "5W-30"|null, brand: "CASTROL"|null }
 // ─────────────────────────────────────────────────────────────
 function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = {}) {
   let catalog;
@@ -165,17 +147,14 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
   const preferredBrand = prefs?.brand ? prefs.brand.toUpperCase() : null;
 
   // ── Допустимый диапазон объёма канистры ──────────────────
-  // Двигатель 3.6л → targetVolume=4л → minVol=3, maxVol=6
-  // Двигатель 4.5л → targetVolume=5л → minVol=4, maxVol=7
-  // НЕ предлагаем 1л канистры никогда (это доливочные)
+  // Минимум 4л — литрушки полностью исключены
   let minVol = null;
   let maxVol = null;
   if (targetVolume) {
-    minVol = Math.max(3, targetVolume - 1); // минимум 3л — убираем 1л и 2л канистры
+    minVol = Math.max(4, targetVolume - 1);
     maxVol = Math.min(10, targetVolume + 2);
   }
 
-  // ── Логирование для отладки ───────────────────────────────
   console.log(`[matchOil] specs=${JSON.stringify(normalizedSpecs)} viscosity=${workingViscosity} volume=${volume}л→target=${targetVolume}л min=${minVol} max=${maxVol}`);
 
   // ── Скоринг ───────────────────────────────────────────────
@@ -203,9 +182,8 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
       }
     }
 
-    // ── Фильтр объёма канистры ────────────────────────────────
-    // ВСЕГДА убираем 1л (доливочные), даже без targetVolume
-    if (item.volume != null && item.volume < 2) {
+    // ── Фильтр объёма: только 4л и выше, всегда ──────────────
+    if (item.volume != null && item.volume < 4) {
       return null;
     }
     // Диапазон по объёму двигателя
@@ -247,7 +225,6 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
     score += aceaMatches * 40;
     score += apiMatches  * 30;
 
-    // Штраф за полный промах по допускам
     if (normalizedSpecs.length > 0 && (oemMatches + aceaMatches + apiMatches) === 0) {
       score -= 300;
     }
@@ -307,7 +284,6 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
     }
   }
 
-  // ── Логируем итог ─────────────────────────────────────────
   console.log(`[matchOil] results: ${result.map(r => `${r.brand} ${r.article} score=${Math.round(r._score)} oem=${r._oem} acea=${r._acea} vol=${r.volume}л`).join(" | ")}`);
 
   // ── Формируем предупреждения ──────────────────────────────
