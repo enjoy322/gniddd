@@ -1,30 +1,33 @@
 "use strict";
-const fs   = require("fs");
-const path = require("path");
-const JSZip = require("jszip");
+const fs      = require("fs");
+const path    = require("path");
+const JSZip   = require("jszip");
 const { DOMParser } = require("@xmldom/xmldom");
 
 const CATALOG_PATH = path.join(__dirname, "oil-catalog.json");
 
 // ─────────────────────────────────────────────────────────────
-// ПРИОРИТЕТНЫЕ БРЕНДЫ (первые три — главные)
+// ПРИОРИТЕТНЫЕ БРЕНДЫ
 // ─────────────────────────────────────────────────────────────
 const PRIORITY_BRANDS = ["AREOL", "COMMA", "ZIC"];
 
 const BRAND_PRIORITY = [
-  "AREOL","COMMA","ZIC",
-  "LIQUI MOLY","CASTROL","MOBIL","SHELL","TOTACHI","SINTEC","LUKOIL",
-  "ROLF","MANNOL","REPSOL","BARDAHL","TAKAYAMA","HYUNDAI XTEER",
-  "TOYOTA","LEXUS","MOBIS","NISSAN","MITSUBISHI","VAG","GM",
-  "IDEMITSU","REINWELL","PROFI-CAR","FURO","PEXOL","COMMA",
-  "HI-GEAR","LAVR","ВМПАВТО",
+  "AREOL", "COMMA", "ZIC",
+  "LIQUI MOLY", "CASTROL", "MOBIL", "SHELL", "TOTACHI", "SINTEC", "LUKOIL",
+  "ROLF", "MANNOL", "REPSOL", "BARDAHL", "TAKAYAMA", "HYUNDAI XTEER",
+  "TOYOTA", "LEXUS", "MOBIS", "NISSAN", "MITSUBISHI", "VAG", "GM",
+  "IDEMITSU", "REINWELL", "PROFI-CAR", "FURO", "PEXOL", "COMMA",
+  "HI-GEAR", "LAVR", "ВМПАВТО",
 ];
 
 // Региональный приоритет вязкостей (RU/СНГ)
-const VISCOSITY_PRIORITY = ["5W-30","5W-40","10W-40","10W-30","0W-30","0W-40","0W-20","5W-50","15W-40"];
+const VISCOSITY_PRIORITY = [
+  "5W-30", "5W-40", "10W-40", "10W-30",
+  "0W-30", "0W-40", "0W-20", "5W-50", "15W-40",
+];
 
 // ─────────────────────────────────────────────────────────────
-// ОБЪЁМ КАНИСТРЫ
+// ОБЪЁМ КАНИСТРЫ — целевой объём для подбора
 // ─────────────────────────────────────────────────────────────
 function pickCanisterVolume(oilVolume) {
   if (!oilVolume) return null;
@@ -32,7 +35,7 @@ function pickCanisterVolume(oilVolume) {
   for (const vol of standard) {
     if (vol >= oilVolume) return vol;
   }
-  return standard[standard.length - 1];
+  return 10;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -53,52 +56,50 @@ function splitSpecs(raw) {
   return raw.split(";").map(s => s.trim()).filter(Boolean);
 }
 
-function clean(v) { return (v || "").trim(); }
+function clean(v) {
+  return (v || "").trim();
+}
 
 // ─────────────────────────────────────────────────────────────
-// ФИХ 1: ТОЧНОЕ СОВПАДЕНИЕ ДОПУСКОВ
-// Убираем опасный includes() — он матчил A3 внутри A3/B4
-// и GF-6 внутри GF-4 (подстрока в обратную сторону).
-// Новая логика:
-//   - точное совпадение — всегда OK
-//   - ILSAC GF-N: кандидат с номером >= требуемого — OK (обратная совместимость)
-//   - всё остальное — только точное совпадение
+// ТОЧНОЕ СОВПАДЕНИЕ ДОПУСКОВ
+// Убираем опасный includes() — он матчил A3 внутри A3/B4 и пр.
+// ILSAC GF-N: обратная совместимость вверх (GF-5 покрывает GF-4)
 // ─────────────────────────────────────────────────────────────
 function isSpecCompatible(required, candidate) {
   if (required === candidate) return true;
 
-  // ILSAC GF-N: GF-5 и GF-6 покрывают GF-4 (обратно совместимы вверх)
+  // ILSAC GF-N: кандидат с бо́льшим номером покрывает меньший
   const reqGF  = required.match(/^ILSACGF-(\d+)$/);
   const candGF = candidate.match(/^ILSACGF-(\d+)$/);
   if (reqGF && candGF) {
     return parseInt(candGF[1]) >= parseInt(reqGF[1]);
   }
 
-  // Всё остальное — только точное совпадение
-  // ACEA A5 ≠ ACEA A3/B4, ACEA A5 ≠ ACEA A5/B5 — строго
   return false;
 }
 
 // ─────────────────────────────────────────────────────────────
 // MATCHOIL — основная функция подбора
+// prefs: { viscosity: "5W-30"|null, brand: "CASTROL"|null }
 // ─────────────────────────────────────────────────────────────
 function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = {}) {
   let catalog;
   try {
     catalog = JSON.parse(fs.readFileSync(CATALOG_PATH, "utf-8"));
   } catch (e) {
-    console.error("[oils] catalog not found");
+    console.error("[oils] catalog not found:", e.message);
     return [];
   }
 
-  const normalizedSpecs    = specs.map(s => normalizeSpec(s));
-  const targetVolume       = pickCanisterVolume(volume);
+  const normalizedSpecs = specs.map(s => normalizeSpec(s));
+  const targetVolume    = pickCanisterVolume(volume);
 
   // ── Определяем рабочую вязкость ──────────────────────────────
   const clientViscosity = prefs?.viscosity ? normalizeViscosity(prefs.viscosity) : null;
   const autoViscosity   = viscosity ? normalizeViscosity(viscosity) : null;
   const workingViscosity = clientViscosity || autoViscosity;
 
+  // Флаг: клиент выбрал вязкость, отличную от рекомендованной производителем
   const viscosityNotRecommended = !!(
     clientViscosity && autoViscosity && clientViscosity !== autoViscosity
   );
@@ -106,18 +107,28 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
   // ── Предпочтение бренда ──────────────────────────────────────
   const preferredBrand = prefs?.brand ? prefs.brand.toUpperCase() : null;
 
+  // ── Допустимый диапазон объёма канистры ─────────────────────
+  // Пример: двигатель 4.5л → targetVolume = 5л
+  //   minVol = max(2, 5-1) = 4л  →  нельзя предлагать 1л или 2л
+  //   maxVol = min(10, 5+2) = 7л →  нельзя предлагать 10л, 20л
+  let minVol = null;
+  let maxVol = null;
+  if (targetVolume) {
+    minVol = Math.max(2, targetVolume - 1);
+    maxVol = Math.min(10, targetVolume + 2);
+  }
+
   // ── Скоринг ──────────────────────────────────────────────────
   const scored = catalog.map(item => {
-    const itemViscosity = normalizeViscosity(item.viscosity);
 
-    // Жёсткий фильтр по вязкости (если определена)
+    // ── Фильтр по вязкости (строгий) ────────────────────────────
+    const itemViscosity = normalizeViscosity(item.viscosity);
     if (workingViscosity && itemViscosity && itemViscosity !== workingViscosity) {
       return null;
     }
 
-    // ── ФИХ 2: ФИЛЬТР ПОЛУСИНТЕТИКИ И МИНЕРАЛКИ ──────────────
-    // Синтетика — единственный тип для современных двигателей.
-    // Если клиент явно не просил полусинтетику через prefs — убираем.
+    // ── Фильтр: только синтетика ─────────────────────────────────
+    // Полусинтетика и минералка убираются, если клиент явно не просил
     const itemOilType = (item.oil_type || "").toLowerCase();
     const clientWantsNonSynth = !!(
       prefs?.oilType && !prefs.oilType.toLowerCase().includes("синт")
@@ -132,14 +143,23 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
         return null;
       }
     }
-    // ── конец фикса 2
 
+    // ── Фильтр объёма канистры ────────────────────────────────────
+    // Убираем 1л канистры (доливочные) и бочки (20л) для легковых авто.
+    // Допустимый диапазон: [targetVolume-1 .. min(targetVolume+2, 10)]
+    if (minVol !== null && item.volume != null) {
+      if (item.volume < minVol || item.volume > maxVol) {
+        return null;
+      }
+    }
+
+    // ── Скоринг ──────────────────────────────────────────────────
     let score = 0;
 
     // Вязкость совпала
     if (workingViscosity && itemViscosity === workingViscosity) score += 50;
 
-    // ── ФИХ 1: ТОЧНЫЙ МАТЧИНГ ДОПУСКОВ ───────────────────────
+    // ── Точный матчинг допусков ───────────────────────────────────
     const itemSpecs = (item.all_specs || []).map(s => normalizeSpec(s));
 
     let oemMatches  = 0;
@@ -148,8 +168,6 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
 
     for (const s of normalizedSpecs) {
       if (!s) continue;
-
-      // Используем isSpecCompatible вместо опасного includes()
       const matched = itemSpecs.some(is => isSpecCompatible(s, is));
       if (!matched) continue;
 
@@ -168,23 +186,19 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
     score += aceaMatches * 40;
     score += apiMatches  * 30;
 
-    // ── ФИХ 3: УВЕЛИЧЕННЫЙ ШТРАФ ЗА ПОЛНЫЙ ПРОМАХ ───────────
-    // Было -50 — бренд-бонус AREOL (+60) его перекрывал,
-    // и AREOL с A3/B4 лез на 2-ю позицию вместо масел с A5.
-    // Теперь -300 — никакой бренд-бонус не перекроет несоответствие.
+    // Штраф за полный промах по допускам (-300 чтобы никакой бренд-бонус не перекрыл)
     if (normalizedSpecs.length > 0 && (oemMatches + aceaMatches + apiMatches) === 0) {
       score -= 300;
     }
-    // ── конец фикса 3
 
-    // Объём канистры
+    // ── Объём канистры — бонус за точное совпадение ───────────────
     if (targetVolume && item.volume != null) {
-      if (item.volume === targetVolume)      score += 40;
-      else if (item.volume > targetVolume)   score -= 10;
-      else                                   score -= 30;
+      if (item.volume === targetVolume)             score += 40; // идеально
+      else if (item.volume === targetVolume + 1)    score += 20; // на 1л больше — норм
+      else                                          score += 5;  // допустимый, но не идеальный
     }
 
-    // Приоритетный бренд клиента
+    // ── Приоритет бренда клиента ──────────────────────────────────
     const itemBrand = (item.brand || "").toUpperCase();
     if (preferredBrand && itemBrand === preferredBrand) score += 200;
 
@@ -198,7 +212,13 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
     // Мягкий штраф за цену
     score -= item.price / 10000;
 
-    return { ...item, _score: score, _oem: oemMatches, _acea: aceaMatches, _api: apiMatches };
+    return {
+      ...item,
+      _score: score,
+      _oem:   oemMatches,
+      _acea:  aceaMatches,
+      _api:   apiMatches,
+    };
   }).filter(Boolean);
 
   scored.sort((a, b) => b._score - a._score);
@@ -207,6 +227,7 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
   const result     = [];
   const usedBrands = new Set();
 
+  // Сначала гарантированно добавляем предпочтительный бренд (если есть)
   if (preferredBrand) {
     const preferred = scored.find(i => i.brand.toUpperCase() === preferredBrand);
     if (preferred) {
@@ -215,6 +236,7 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
     }
   }
 
+  // Добавляем остальные с уникальными брендами
   for (const item of scored) {
     if (result.length >= 3) break;
     const b = item.brand.toUpperCase();
@@ -224,6 +246,7 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
     }
   }
 
+  // Если не набрали 3 — добавляем без ограничения по бренду
   if (result.length < 3) {
     for (const item of scored) {
       if (result.length >= 3) break;
@@ -231,7 +254,7 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
     }
   }
 
-  // ── Определяем предупреждения ─────────────────────────────────
+  // ── Формируем предупреждения и возвращаем ────────────────────
   return result.map(item => {
     const hasSpecMatch = (item._oem + item._acea + item._api) > 0;
     let warning = null;
@@ -246,6 +269,9 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
   });
 }
 
+// ─────────────────────────────────────────────────────────────
+// ФОРМАТИРОВАНИЕ РЕЗУЛЬТАТА
+// ─────────────────────────────────────────────────────────────
 function formatResult(item, warning = null) {
   return {
     article:     item.article,
@@ -269,16 +295,16 @@ function formatResult(item, warning = null) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// НОРМАЛИЗАЦИЯ XLSX
+// НОРМАЛИЗАЦИЯ XLSX → oil-catalog.json
 // ─────────────────────────────────────────────────────────────
 async function normalizeOilCatalog(xlsxPath = path.join(__dirname, "main.xlsx")) {
   console.log("[oils] reading", xlsxPath);
-  const buf  = fs.readFileSync(xlsxPath);
-  const zip  = await JSZip.loadAsync(buf);
+  const buf    = fs.readFileSync(xlsxPath);
+  const zip    = await JSZip.loadAsync(buf);
   const ssXml  = await zip.file("xl/sharedStrings.xml").async("string");
   const strings = parseSharedStrings(ssXml);
-  const shXml = await zip.file("xl/worksheets/sheet1.xml").async("string");
-  const rows  = parseSheet(shXml, strings);
+  const shXml  = await zip.file("xl/worksheets/sheet1.xml").async("string");
+  const rows   = parseSheet(shXml, strings);
   const catalog = rows.map(normalizeRow).filter(r => r !== null);
   fs.writeFileSync(CATALOG_PATH, JSON.stringify(catalog, null, 2), "utf-8");
   console.log(`[oils] normalized ${catalog.length} items → ${CATALOG_PATH}`);
@@ -296,17 +322,23 @@ function normalizeRow(cells) {
   const api       = splitSpecs(cells["V"]);
   const ilsac     = splitSpecs(cells["W"]);
   const acea      = splitSpecs(cells["X"]);
-  const oem       = splitSpecs([cells["Y"], cells["Z"], cells["["], cells["^"]].join(";"));
+  const oem       = splitSpecs(
+    [cells["Y"], cells["Z"], cells["["], cells["^"]].join(";")
+  );
   const allSpecs  = [...api, ...ilsac, ...acea, ...oem];
 
   return {
-    brand, article,
+    brand,
+    article,
     sku:         clean(cells["D"]),
     description: clean(cells["C"]),
     price:       parseFloat(cells["G"]) || 0,
-    stock, volume, viscosity,
+    stock,
+    volume,
+    viscosity,
     oil_type:    clean(cells["U"]),
-    api, ilsac, acea, oem, all_specs: allSpecs,
+    api, ilsac, acea, oem,
+    all_specs: allSpecs,
   };
 }
 
@@ -335,7 +367,9 @@ function parseSheet(xml, strings) {
       const vEl = c.getElementsByTagName("v")[0];
       let val   = "";
       if (vEl) {
-        val = t === "s" ? (strings[parseInt(vEl.textContent.trim())] ?? "") : (vEl.textContent || "");
+        val = t === "s"
+          ? (strings[parseInt(vEl.textContent.trim())] ?? "")
+          : (vEl.textContent || "");
       }
       cells[col] = val;
     }

@@ -129,8 +129,89 @@
       box-shadow: var(--shadow-sm);
     }
 
-    .vin-lbl { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--soft); }
-    .vin-val { font-size: 17px; font-weight: 700; letter-spacing: 2.5px; color: var(--text); }
+    .vin-lbl { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--soft); flex-shrink: 0; }
+
+    .vin-val {
+      font-size: 17px; font-weight: 700; letter-spacing: 2.5px; color: var(--text);
+      cursor: pointer; border-radius: 5px; padding: 2px 6px; margin: -2px -6px;
+      transition: background .15s, color .15s;
+      user-select: all;
+    }
+    .vin-val:hover { background: #f0f0ee; color: var(--blue); }
+    .vin-val:active { background: #e0eeff; }
+
+    .vin-gap { flex: 1; }
+
+    /* ── VIN EXTERNAL BUTTONS ── */
+    .vin-ext-btns {
+      display: flex; gap: 6px; align-items: center;
+    }
+
+    .ext-btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px; border-radius: 7px;
+      border: 1px solid var(--border2);
+      background: var(--surface2);
+      font-size: 12px; font-weight: 600;
+      color: var(--muted); cursor: pointer; text-decoration: none;
+      transition: all .15s; white-space: nowrap;
+    }
+    .ext-btn:hover {
+      border-color: var(--accent); color: var(--accent);
+      background: #f5f5f5;
+    }
+    .ext-btn svg { flex-shrink: 0; }
+
+    /* ── PREFS ROW (под VIN) ── */
+    .prefs-row {
+      padding: 10px 24px 0;
+      display: none;
+    }
+    .prefs-row.visible { display: block; }
+
+    .prefs-row-inner {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .pref-group {
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    .pref-cb {
+      width: 16px; height: 16px; cursor: pointer;
+      accent-color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .pref-label {
+      font-size: 12px; font-weight: 600; color: var(--muted);
+      cursor: pointer; white-space: nowrap;
+    }
+
+    .pref-select {
+      padding: 5px 10px; border-radius: 7px;
+      border: 1px solid var(--border2);
+      background: var(--surface2);
+      font-size: 12px; font-weight: 600;
+      color: var(--text); cursor: pointer;
+      transition: border-color .15s, opacity .15s;
+      outline: none;
+    }
+    .pref-select:focus { border-color: var(--accent); }
+    .pref-select:disabled { opacity: .4; pointer-events: none; }
+
+    .pref-hint {
+      font-size: 11px; color: var(--soft);
+      margin-left: auto;
+    }
 
     /* ── MAIN GRID ── */
     .main {
@@ -154,9 +235,7 @@
     }
 
     .rec-hd-ico { font-size: 15px; }
-
     .rec-hd-ttl { font-size: 13px; font-weight: 600; color: var(--text); }
-
     .rec-hd-sub { font-size: 12px; color: var(--soft); margin-left: 4px; }
 
     .rec-grid {
@@ -167,190 +246,98 @@
 
     /* ── ЛОГОТИП БРЕНДА ── */
     .oil-card-logo {
-      height: 20px;
-      width: auto;
-      max-width: 80px;
-      object-fit: contain;
-      object-position: left center;
-      opacity: 0.85;
-      display: block;
+      height: 20px; width: auto; max-width: 80px;
+      object-fit: contain; object-position: left center;
+      opacity: 0.85; display: block;
     }
     .oil-card-logo.hidden { display: none; }
-
-    /* Нижняя строка шапки карточки — логотип */
-    .oil-card-logo-row {
-      margin-top: 8px;
-      min-height: 20px;
-    }
+    .oil-card-logo-row { margin-top: 8px; min-height: 20px; }
 
     /* ── КАРТОЧКА МАСЛА ── */
     .oil-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      box-shadow: var(--shadow);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; box-shadow: var(--shadow);
+      overflow: hidden; display: flex; flex-direction: column;
     }
 
     .oil-card-top {
-      padding: 14px 16px 10px;
-      border-bottom: 1px solid var(--border);
+      padding: 14px 16px 10px; border-bottom: 1px solid var(--border);
     }
     .oil-card-top-main {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
+      display: flex; align-items: flex-start;
+      justify-content: space-between; gap: 12px;
     }
 
     .oil-card-brand {
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: var(--soft);
-      margin-bottom: 3px;
+      font-size: 10px; font-weight: 600; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--soft); margin-bottom: 3px;
     }
 
     .oil-card-article {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--text);
-      font-family: 'Inter', monospace;
-      letter-spacing: 0.3px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      border-radius: 4px;
-      padding: 1px 4px;
-      margin: -1px -4px;
+      font-size: 13px; font-weight: 600; color: var(--text);
+      font-family: 'Inter', monospace; letter-spacing: 0.3px;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+      border-radius: 4px; padding: 1px 4px; margin: -1px -4px;
       transition: background .15s, color .15s;
     }
-
-    .oil-card-article:hover {
-      background: #f0f0ee;
-      color: var(--blue);
-    }
-
-    .oil-card-article:active {
-      background: #e0eeff;
-    }
-
-    .oil-card-article .copy-ico {
-      opacity: 0;
-      transition: opacity .15s;
-      flex-shrink: 0;
-    }
-
+    .oil-card-article:hover { background: #f0f0ee; color: var(--blue); }
+    .oil-card-article:active { background: #e0eeff; }
+    .oil-card-article .copy-ico { opacity: 0; transition: opacity .15s; flex-shrink: 0; }
     .oil-card-article:hover .copy-ico { opacity: 1; }
 
     .oil-card-price {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--text);
-      white-space: nowrap;
+      font-size: 18px; font-weight: 700; color: var(--text); white-space: nowrap;
     }
-
-    .oil-card-price span {
-      font-size: 12px;
-      font-weight: 400;
-      color: var(--soft);
-    }
+    .oil-card-price span { font-size: 12px; font-weight: 400; color: var(--soft); }
 
     .oil-card-body { padding: 12px 16px; flex: 1; }
 
     .oil-card-desc {
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.4;
-      margin-bottom: 10px;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+      font-size: 12px; color: var(--muted); line-height: 1.4; margin-bottom: 10px;
+      display: -webkit-box; -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical; overflow: hidden;
     }
 
-    .oil-card-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 5px;
-      margin-bottom: 8px;
-    }
+    .oil-card-meta { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
 
     .meta-chip {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 5px;
-      padding: 2px 8px;
-      font-size: 11px;
-      font-weight: 500;
-      color: var(--muted);
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 5px; padding: 2px 8px;
+      font-size: 11px; font-weight: 500; color: var(--muted);
     }
-
     .meta-chip.visc {
-      background: #eff6ff;
-      border-color: #bfdbfe;
-      color: #1d4ed8;
-      font-weight: 600;
+      background: #eff6ff; border-color: #bfdbfe;
+      color: #1d4ed8; font-weight: 600;
     }
 
     .oil-card-footer {
-      padding: 10px 16px;
-      border-top: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      padding: 10px 16px; border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
     }
 
-    .stock-badge {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      font-size: 12px;
-      font-weight: 500;
-    }
-
-    .stock-dot {
-      width: 6px; height: 6px; border-radius: 50%;
-    }
-
+    .stock-badge { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 500; }
+    .stock-dot { width: 6px; height: 6px; border-radius: 50%; }
     .stock-dot.ok  { background: var(--green); }
     .stock-dot.low { background: #f59e0b; }
-
     .stock-count { color: var(--muted); }
-
-    .vol-chip {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--soft);
-    }
+    .vol-chip { font-size: 12px; font-weight: 600; color: var(--soft); }
 
     /* ── SHARED CARD STYLES ── */
-    .card {
-      background: var(--surface); border-radius: 14px;
-      box-shadow: var(--shadow); overflow: hidden;
-    }
-
+    .card { background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
     .card-hd {
       padding: 13px 18px 12px; border-bottom: 1px solid var(--border);
       display: flex; align-items: center; gap: 8px;
     }
-
     .card-ico { font-size: 15px; line-height: 1; }
     .card-ttl { font-size: 13px; font-weight: 600; }
     .card-bd  { padding: 18px; }
 
     /* ── CAR ── */
     .car-name { font-size: 20px; font-weight: 700; margin-bottom: 14px; }
-
     .car-field {
       display: flex; align-items: baseline; gap: 8px;
       padding: 7px 0; border-bottom: 1px solid var(--border);
     }
-
     .car-field:last-child { border-bottom: none; }
     .cf-key { font-size: 13px; font-weight: 600; min-width: 88px; flex-shrink: 0; }
     .cf-val { font-size: 13px; color: var(--muted); }
@@ -369,17 +356,10 @@
       background: var(--surface2); border: 1px solid var(--border);
       border-radius: 8px; padding: 10px 12px; margin-bottom: 6px;
     }
-
     .oil-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 5px; }
     .oil-row:last-child { margin-bottom: 0; }
-
-    .oil-key {
-      font-size: 12px; font-weight: 600; color: var(--muted);
-      min-width: 66px; flex-shrink: 0; padding-top: 2px;
-    }
-
+    .oil-key { font-size: 12px; font-weight: 600; color: var(--muted); min-width: 66px; flex-shrink: 0; padding-top: 2px; }
     .badges { display: flex; flex-wrap: wrap; gap: 4px; }
-
     .badge {
       background: var(--surface); border: 1px solid var(--border2);
       border-radius: 4px; padding: 2px 8px;
@@ -390,13 +370,10 @@
       display: flex; justify-content: flex-end;
       margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border);
     }
-
     .source-link {
       display: inline-flex; align-items: center; gap: 5px;
-      font-size: 12px; color: var(--soft); text-decoration: none;
-      transition: color .15s;
+      font-size: 12px; color: var(--soft); text-decoration: none; transition: color .15s;
     }
-
     .source-link:hover { color: var(--accent); text-decoration: underline; }
 
     /* ── EMPTY / LOADING ── */
@@ -405,7 +382,6 @@
       align-items: center; justify-content: center;
       min-height: 180px; gap: 8px; color: var(--soft);
     }
-
     .empty-ico { font-size: 32px; opacity: .35; }
     .empty-txt { font-size: 13px; }
 
@@ -414,13 +390,11 @@
       justify-content: center; min-height: 180px;
       color: var(--muted); font-size: 13px;
     }
-
     .spinner {
       width: 16px; height: 16px;
       border: 2px solid var(--border2); border-top-color: var(--accent);
       border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0;
     }
-
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ── TOAST ── */
@@ -435,68 +409,26 @@
       transition: transform .25s ease, opacity .25s ease;
       white-space: nowrap; pointer-events: none;
     }
-
     .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    .oil-card-warning {
+      font-size: 11px; color: #92400e; background: #fef3c7;
+      border-radius: 5px; padding: 4px 10px; margin: 6px 14px 0;
+    }
 
     /* ── RESPONSIVE ── */
     @media (max-width: 900px) {
       .rec-grid { grid-template-columns: 1fr 1fr; }
     }
-
     @media (max-width: 680px) {
       header, .input-bar { padding-left: 14px; padding-right: 14px; }
-      .vin-row { padding: 10px 14px 0; }
+      .vin-row, .prefs-row { padding: 10px 14px 0; }
       .main { grid-template-columns: 1fr; padding: 12px 14px 0; }
       .rec-section { padding: 12px 14px 20px; }
       .rec-grid { grid-template-columns: 1fr; }
       #vinInput { width: 150px; }
+      .vin-ext-btns { flex-wrap: wrap; }
     }
-
-    /* ── ПОПАП НАСТРОЕК ── */
-    .prefs-btn {
-      display: flex; align-items: center; gap: 5px;
-      padding: 0 12px; height: 36px; border-radius: var(--radius);
-      border: 1px solid var(--border); background: var(--surface);
-      color: var(--muted); font-size: 12px; font-weight: 500;
-      cursor: pointer; transition: all .15s; white-space: nowrap; flex-shrink: 0;
-    }
-    .prefs-btn:hover { border-color: var(--border2); color: var(--text); }
-    .prefs-btn.active { border-color: var(--accent); color: var(--accent); background: #f0f0ee; }
-    .prefs-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.4); z-index: 100;
-      align-items: flex-start; justify-content: center; padding-top: 80px;
-    }
-    .prefs-overlay.open { display: flex; }
-    .prefs-popup {
-      background: var(--surface); border-radius: 14px;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.18);
-      padding: 24px; width: 340px; max-width: 90vw;
-    }
-    .prefs-title { font-size: 15px; font-weight: 600; margin-bottom: 18px; color: var(--text); }
-    .prefs-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 500; display: block; }
-    .prefs-select {
-      width: 100%; padding: 8px 10px; border-radius: 8px;
-      border: 1px solid var(--border); background: var(--surface2);
-      font-size: 13px; color: var(--text); margin-bottom: 16px; cursor: pointer;
-    }
-    .prefs-actions { display: flex; gap: 8px; }
-    .prefs-save {
-      flex: 1; padding: 9px; border-radius: 8px;
-      background: var(--accent); color: #fff;
-      font-size: 13px; font-weight: 600; border: none; cursor: pointer;
-    }
-    .prefs-reset {
-      padding: 9px 14px; border-radius: 8px;
-      border: 1px solid var(--border); background: var(--surface);
-      font-size: 13px; color: var(--muted); cursor: pointer;
-    }
-    .oil-card-warning {
-      font-size: 11px; color: #92400e; background: #fef3c7;
-      border-radius: 5px; padding: 4px 10px; margin: 6px 14px 0;
-    }
-    .oil-card-logo { height: 18px; width: auto; max-width: 72px; object-fit: contain; object-position: left center; opacity:.85; flex-shrink:0; display:block; }
-    .oil-card-logo.hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -510,6 +442,7 @@
     <div class="header-gap"></div>
   </header>
 
+  <!-- ── INPUT BAR ── -->
   <div class="input-bar">
     <div class="vin-group">
       <input id="vinInput" type="text" maxlength="17"
@@ -540,16 +473,78 @@
       </svg>
       Отправить
     </button>
-    <button id="prefsBtn" class="prefs-btn">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
-      Настройки
-    </button>
   </div>
 
+  <!-- ── VIN ROW ── -->
   <div class="vin-row" id="vinRow">
     <div class="vin-row-inner">
       <span class="vin-lbl">VIN</span>
-      <span class="vin-val" id="vinDisplay"></span>
+      <span class="vin-val" id="vinDisplay" title="Нажмите чтобы скопировать"></span>
+      <div class="vin-gap"></div>
+      <div class="vin-ext-btns">
+        <a class="ext-btn" id="btnArmtek" href="#" target="_blank" rel="noopener noreferrer">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          Армтек
+        </a>
+        <a class="ext-btn" id="btnRavenol" href="#" target="_blank" rel="noopener noreferrer">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+          </svg>
+          Равенол
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PREFS ROW (фильтры под VIN) ── -->
+  <div class="prefs-row" id="prefsRow">
+    <div class="prefs-row-inner">
+
+      <!-- Вязкость -->
+      <div class="pref-group">
+        <input type="checkbox" class="pref-cb" id="cbVisc" />
+        <label class="pref-label" for="cbVisc">Вязкость:</label>
+        <select class="pref-select" id="prefsVisc" disabled>
+          <option value="">— выбрать —</option>
+          <option>5W-30</option>
+          <option>5W-40</option>
+          <option>10W-40</option>
+          <option>0W-20</option>
+          <option>0W-30</option>
+          <option>0W-40</option>
+          <option>10W-30</option>
+          <option>15W-40</option>
+        </select>
+      </div>
+
+      <!-- Бренд -->
+      <div class="pref-group">
+        <input type="checkbox" class="pref-cb" id="cbBrand" />
+        <label class="pref-label" for="cbBrand">Бренд:</label>
+        <select class="pref-select" id="prefsBrand" disabled>
+          <option value="">— выбрать —</option>
+          <option>AREOL</option>
+          <option>COMMA</option>
+          <option>ZIC</option>
+          <option>LIQUI MOLY</option>
+          <option>CASTROL</option>
+          <option>MOBIL</option>
+          <option>SHELL</option>
+          <option>TOTACHI</option>
+          <option>SINTEC</option>
+          <option>LUKOIL</option>
+          <option>BARDAHL</option>
+          <option>MANNOL</option>
+          <option>REPSOL</option>
+          <option>HYUNDAI XTEER</option>
+        </select>
+      </div>
+
+      <span class="pref-hint" id="prefsHint"></span>
     </div>
   </div>
 
@@ -592,7 +587,6 @@
     <div class="rec-grid" id="recGrid"></div>
   </div>
 
-  <div id="history" style="display:none"></div>
   <div class="toast" id="toast"></div>
 
   <script>
@@ -601,6 +595,9 @@
     let sessionId   = null;
     let loading     = false;
 
+    // userPrefs — формируется из чекбоксов в реальном времени
+    let userPrefs = { viscosity: null, brand: null };
+
     // ── ELEMENTS ──────────────────────────────────────────────
     const vinInput   = document.getElementById('vinInput');
     const btnOk      = document.getElementById('btnOk');
@@ -608,12 +605,22 @@
     const fileInput  = document.getElementById('fileInput');
     const fileName   = document.getElementById('fileName');
     const vinRow     = document.getElementById('vinRow');
+    const prefsRow   = document.getElementById('prefsRow');
     const vinDisplay = document.getElementById('vinDisplay');
     const carInfo    = document.getElementById('carInfo');
     const liquids    = document.getElementById('liquids');
     const recSection = document.getElementById('recSection');
     const recGrid    = document.getElementById('recGrid');
     const recSub     = document.getElementById('recSub');
+    const prefsHint  = document.getElementById('prefsHint');
+
+    const cbVisc     = document.getElementById('cbVisc');
+    const selVisc    = document.getElementById('prefsVisc');
+    const cbBrand    = document.getElementById('cbBrand');
+    const selBrand   = document.getElementById('prefsBrand');
+
+    const btnArmtek  = document.getElementById('btnArmtek');
+    const btnRavenol = document.getElementById('btnRavenol');
 
     // ── INIT ──────────────────────────────────────────────────
     async function init() {
@@ -629,6 +636,51 @@
     }
 
     init();
+
+    // ── PREFS CHECKBOXES ──────────────────────────────────────
+    cbVisc.addEventListener('change', () => {
+      selVisc.disabled = !cbVisc.checked;
+      if (!cbVisc.checked) selVisc.value = '';
+      applyPrefs();
+    });
+
+    cbBrand.addEventListener('change', () => {
+      selBrand.disabled = !cbBrand.checked;
+      if (!cbBrand.checked) selBrand.value = '';
+      applyPrefs();
+    });
+
+    selVisc.addEventListener('change', applyPrefs);
+    selBrand.addEventListener('change', applyPrefs);
+
+    function applyPrefs() {
+      userPrefs.viscosity = (cbVisc.checked && selVisc.value) ? selVisc.value : null;
+      userPrefs.brand     = (cbBrand.checked && selBrand.value) ? selBrand.value : null;
+
+      // Подсказка
+      const parts = [];
+      if (userPrefs.viscosity) parts.push(userPrefs.viscosity);
+      if (userPrefs.brand)     parts.push(userPrefs.brand);
+      prefsHint.textContent = parts.length ? '✓ фильтр: ' + parts.join(', ') : '';
+
+      if (currentVin) loadLiquids(currentVin);
+    }
+
+    // ── VIN: копирование по клику ─────────────────────────────
+    vinDisplay.addEventListener('click', () => {
+      const vin = vinDisplay.textContent.trim();
+      if (!vin) return;
+      navigator.clipboard.writeText(vin).then(() => {
+        showToast('VIN скопирован: ' + vin, 2000);
+      }).catch(() => {
+        // fallback
+        const ta = document.createElement('textarea');
+        ta.value = vin; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
+        showToast('VIN скопирован: ' + vin, 2000);
+      });
+    });
 
     // ── EVENTS ────────────────────────────────────────────────
     vinInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendManual(); });
@@ -659,7 +711,6 @@
       const file = fileInput.files[0];
       if (!file) return;
 
-      // Сбрасываем файл сразу — чтобы повторная загрузка всегда работала
       fileInput.value = '';
       fileName.textContent = '';
       document.getElementById('lblFile').classList.remove('active');
@@ -674,40 +725,16 @@
       fd.append('image', file);
 
       try {
-        // ═══════════════════════════════════════════════════════════
-// ПАТЧ для public/index.html — БАГ 1: спиннер бесконечно крутится
-//
-// Найдите функцию upload() и замените блок внутри try{} на этот:
-// ═══════════════════════════════════════════════════════════
+        const res  = await fetch('/upload/' + sessionId, { method: 'POST', body: fd });
+        const data = await res.json();
 
-/*
-// БЫЛО (loading сбрасывается только при ошибке — poll() не срабатывает):
+        loading = false;
 
-      const res  = await fetch('/upload/' + sessionId, { method: 'POST', body: fd });
-      const data = await res.json();
-
-      if (!data.vin) {
-        loading = false; // ← сбрасывается ТОЛЬКО здесь
-        setError(carInfo, 'VIN не найден на фото');
-        setError(liquids, 'Попробуйте сделать фото чётче или ввести вручную');
-        showToast('VIN не удалось распознать после 3 попыток');
-      }
-      // Если VIN найден — loading остаётся true, poll() пропускает VIN навсегда!
-*/
-
-// НАДО (loading = false сразу, poll() подхватит VIN):
-
-      const res  = await fetch('/upload/' + sessionId, { method: 'POST', body: fd });
-      const data = await res.json();
-
-      loading = false; // ← сбрасываем ВСЕГДА — poll() увидит VIN и загрузит данные
-
-      if (!data.vin) {
-        setError(carInfo, 'VIN не найден на фото');
-        setError(liquids, 'Попробуйте сделать фото чётче или ввести вручную');
-        showToast('VIN не удалось распознать после 3 попыток');
-      }
-      // Если VIN найден — poll() через ≤3 сек вызовет loadCarInfo + loadLiquids
+        if (!data.vin) {
+          setError(carInfo, 'VIN не найден на фото');
+          setError(liquids, 'Попробуйте сделать фото чётче или ввести вручную');
+          showToast('VIN не удалось распознать после 3 попыток');
+        }
       } catch (e) {
         loading = false;
         setError(carInfo, 'Ошибка отправки');
@@ -729,13 +756,16 @@
         if (!loading) {
           const vin = data.vin || null;
           vinRow.style.display = vin ? 'block' : 'none';
-          if (vin) vinDisplay.textContent = vin.toUpperCase();
+          prefsRow.classList.toggle('visible', !!vin);
+
+          if (vin) {
+            vinDisplay.textContent = vin.toUpperCase();
+            updateExtLinks(vin);
+          }
 
           if (vin && vin !== currentVin) {
             currentVin = vin;
             vinInput.value = vin.toUpperCase();
-            vinRow.style.display = 'block';
-            vinDisplay.textContent = vin.toUpperCase();
             hideRec();
             loadCarInfo(vin);
             loadLiquids(vin);
@@ -745,6 +775,13 @@
     }
 
     setInterval(poll, 3000);
+
+    // ── ВНЕШНИЕ ССЫЛКИ ───────────────────────────────────────
+    function updateExtLinks(vin) {
+      const v = (vin || '').toUpperCase();
+      btnArmtek.href  = 'https://etp.armtek.ru/catalogs/catalogs_original/getCatalogByParams/?ft=findByVIN&vin=' + v;
+      btnRavenol.href = 'https://shop.ravenol.ru/vinsearch-' + v + '/';
+    }
 
     // ── CAR INFO ──────────────────────────────────────────────
     async function loadCarInfo(vin) {
@@ -849,7 +886,6 @@
               '<polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
               'источник</a></div>' : '');
 
-        // Рекомендации из склада
         renderRec(recs);
 
       } catch (e) {
@@ -861,7 +897,6 @@
     // ── РЕКОМЕНДАЦИИ ──────────────────────────────────────────
     function renderRec(recs) {
       if (!recs || !recs.length) { hideRec(); return; }
-
       recSub.textContent = recs.length + ' позиц' + (recs.length === 1 ? 'ия' : 'ии') + ' подобрано';
       recGrid.innerHTML  = recs.map(renderRecCard).join('');
       recSection.classList.add('visible');
@@ -879,7 +914,7 @@
         ...(r.specs?.api   || []),
         ...(r.specs?.acea  || []),
         ...(r.specs?.ilsac || []),
-      ].slice(0, 4); // не больше 4 чипов
+      ].slice(0, 4);
 
       const logoSrc = brandLogo(r.brand);
       const logoHtml = logoSrc
@@ -887,8 +922,6 @@
         : '';
 
       return '<div class="oil-card">' +
-
-        // Шапка: [бренд+артикул | цена], затем [логотип]
         '<div class="oil-card-top">' +
           '<div class="oil-card-top-main">' +
             '<div>' +
@@ -902,25 +935,15 @@
           '</div>' +
           (logoHtml ? '<div class="oil-card-logo-row">' + logoHtml + '</div>' : '') +
         '</div>' +
-
-        // Тело: описание + чипы
         (r.warning ? '<div class="oil-card-warning">⚠ ' + esc(r.warning) + '</div>' : '') +
         '<div class="oil-card-body">' +
-          (r.description
-            ? '<div class="oil-card-desc">' + esc(r.description) + '</div>'
-            : '') +
+          (r.description ? '<div class="oil-card-desc">' + esc(r.description) + '</div>' : '') +
           '<div class="oil-card-meta">' +
-            (r.viscosity
-              ? '<span class="meta-chip visc">' + esc(r.viscosity) + '</span>'
-              : '') +
-            (r.volume
-              ? '<span class="meta-chip">' + r.volume + ' л</span>'
-              : '') +
+            (r.viscosity ? '<span class="meta-chip visc">' + esc(r.viscosity) + '</span>' : '') +
+            (r.volume    ? '<span class="meta-chip">' + r.volume + ' л</span>' : '') +
             allSpecs.map(s => '<span class="meta-chip">' + esc(s) + '</span>').join('') +
           '</div>' +
         '</div>' +
-
-        // Футер: остаток + объём
         '<div class="oil-card-footer">' +
           '<div class="stock-badge">' +
             '<div class="stock-dot ' + (stockOk ? 'ok' : 'low') + '"></div>' +
@@ -928,7 +951,6 @@
           '</div>' +
           '<span class="vol-chip">' + esc(r.oil_type || '') + '</span>' +
         '</div>' +
-
       '</div>';
     }
 
@@ -938,113 +960,48 @@
 
     function esc(str) {
       return String(str || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
     // ── HELPERS ───────────────────────────────────────────────
     function setLoading(el, msg) {
       el.innerHTML = '<div class="loading-row"><div class="spinner"></div>' + (msg || 'Загрузка…') + '</div>';
     }
-
-    function setError(el, msg) {
-      el.innerHTML = emptyHtml('⚠️', msg);
-    }
-
+    function setError(el, msg) { el.innerHTML = emptyHtml('⚠️', msg); }
     function emptyHtml(icon, msg) {
       return '<div class="empty"><div class="empty-ico">' + icon + '</div><div class="empty-txt">' + msg + '</div></div>';
     }
 
     // ── ЛОГОТИПЫ БРЕНДОВ ──────────────────────────────────────
-    // Ключи — UPPERCASE бренда, значения — точные имена файлов без .webp
     const BRAND_LOGOS = {
-      'LIQUI MOLY':    'liquimoly',
-      'CASTROL':       'castrol',
-      'MOBIL':         'mobil',
-      'SHELL':         'Shell',
-      'ZIC':           'zic',
-      'TOTACHI':       'totachi',
-      'SINTEC':        'sintec',
-      'LUKOIL':        'lukoil',
-      'ROLF':          'rolf',
-      'AREOL':         'areol',
-      'MANNOL':        'mannol',
-      'REPSOL':        'repsol',
-      'BARDAHL':       'bardahl',
-      'TAKAYAMA':      'takayma',
-      'HYUNDAI XTEER': 'hyundayxteer',
-      'TOYOTA':        'toyota',
-      'LEXUS':         'lexus',
-      'NISSAN':        'nissan',
-      'MITSUBISHI':    'mitsubishi',
-      'VAG':           'volkswagen',
-      'VOLKSWAGEN':    'volkswagen',
-      'GM':            'gm',
-      'IDEMITSU':      'idemitsu',
-      'REINWELL':      'reinwell',
-      'PROFI-CAR':     'profi-car',
-      'FURO':          'furo',
-      'PEXOL':         'pexol',
-      'COMMA':         'comma',
-      'HI-GEAR':       'hi-gear',
-      'ВМПАВТО':       'вмпавто',
+      'LIQUI MOLY': 'liquimoly', 'CASTROL': 'castrol', 'MOBIL': 'mobil',
+      'SHELL': 'Shell', 'ZIC': 'zic', 'TOTACHI': 'totachi', 'SINTEC': 'sintec',
+      'LUKOIL': 'lukoil', 'ROLF': 'rolf', 'AREOL': 'areol', 'MANNOL': 'mannol',
+      'REPSOL': 'repsol', 'BARDAHL': 'bardahl', 'TAKAYAMA': 'takayma',
+      'HYUNDAI XTEER': 'hyundayxteer', 'TOYOTA': 'toyota', 'LEXUS': 'lexus',
+      'NISSAN': 'nissan', 'MITSUBISHI': 'mitsubishi', 'VAG': 'volkswagen',
+      'VOLKSWAGEN': 'volkswagen', 'GM': 'gm', 'IDEMITSU': 'idemitsu',
+      'REINWELL': 'reinwell', 'PROFI-CAR': 'profi-car', 'FURO': 'furo',
+      'PEXOL': 'pexol', 'COMMA': 'comma', 'HI-GEAR': 'hi-gear', 'ВМПАВТО': 'вмпавто',
     };
 
     function brandLogo(brand) {
-      const key  = (brand || '').toUpperCase();
-      const file = BRAND_LOGOS[key] || null;
-      // null = логотип неизвестен, не рендерим img вообще
-      if (!file) return null;
-      return '/logo/' + file + '.webp';
+      const file = BRAND_LOGOS[(brand || '').toUpperCase()] || null;
+      return file ? '/logo/' + file + '.webp' : null;
     }
-
-    // ── НАСТРОЙКИ ────────────────────────────────────────────
-    let userPrefs = { viscosity: null, brand: null };
-
-    (function initPrefs() {
-      const btn     = document.getElementById('prefsBtn');
-      const overlay = document.getElementById('prefsOverlay');
-      const selVisc = document.getElementById('prefsVisc');
-      const selBrand= document.getElementById('prefsBrand');
-
-      btn.addEventListener('click', () => overlay.classList.toggle('open'));
-      overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
-
-      document.getElementById('prefsSave').addEventListener('click', () => {
-        userPrefs.viscosity = selVisc.value  || null;
-        userPrefs.brand     = selBrand.value || null;
-        overlay.classList.remove('open');
-        btn.classList.toggle('active', !!(userPrefs.viscosity || userPrefs.brand));
-        if (currentVin) loadLiquids(currentVin);
-      });
-      document.getElementById('prefsReset').addEventListener('click', () => {
-        userPrefs = { viscosity: null, brand: null };
-        selVisc.value = ''; selBrand.value = '';
-        btn.classList.remove('active');
-        overlay.classList.remove('open');
-        if (currentVin) loadLiquids(currentVin);
-      });
-    })();
 
     // ── КОПИРОВАНИЕ АРТИКУЛА ──────────────────────────────────
     function copyArticle(el, article) {
       navigator.clipboard.writeText(article).then(() => {
-        // Временно меняем цвет элемента на зелёный
         el.style.color = 'var(--green)';
         setTimeout(() => el.style.color = '', 1200);
         showToast('Скопировано: ' + article, 2000);
       }).catch(() => {
-        // Fallback для старых браузеров
         const ta = document.createElement('textarea');
-        ta.value = article;
-        ta.style.position = 'fixed';
-        ta.style.opacity  = '0';
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
+        ta.value = article; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
         showToast('Скопировано: ' + article, 2000);
       });
     }
@@ -1056,74 +1013,5 @@
       setTimeout(() => el.classList.remove('show'), duration);
     }
   </script>
-  <!-- Попап настроек -->
-  <div class="prefs-overlay" id="prefsOverlay">
-    <div class="prefs-popup">
-      <div class="prefs-title">Предпочтения клиента</div>
-
-      <label class="prefs-label" for="prefsVisc">Вязкость масла</label>
-      <select class="prefs-select" id="prefsVisc">
-        <option value="">— Авто (по допускам) —</option>
-        <option>5W-30</option>
-        <option>5W-40</option>
-        <option>10W-40</option>
-        <option>0W-20</option>
-        <option>0W-30</option>
-        <option>0W-40</option>
-        <option>10W-30</option>
-        <option>15W-40</option>
-      </select>
-
-      <label class="prefs-label" for="prefsBrand">Предпочтительный бренд</label>
-      <select class="prefs-select" id="prefsBrand">
-        <option value="">— Любой —</option>
-        <option>AREOL</option>
-        <option>COMMA</option>
-        <option>ZIC</option>
-        <option>LIQUI MOLY</option>
-        <option>CASTROL</option>
-        <option>MOBIL</option>
-        <option>SHELL</option>
-        <option>TOTACHI</option>
-        <option>SINTEC</option>
-        <option>LUKOIL</option>
-        <option>BARDAHL</option>
-        <option>MANNOL</option>
-        <option>REPSOL</option>
-        <option>HYUNDAI XTEER</option>
-      </select>
-
-      <div class="prefs-actions">
-        <button class="prefs-save" id="prefsSave">Применить</button>
-        <button class="prefs-reset" id="prefsReset">Сбросить</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="prefs-overlay" id="prefsOverlay">
-    <div class="prefs-popup">
-      <div class="prefs-title">Предпочтения клиента</div>
-      <label class="prefs-label">Вязкость масла</label>
-      <select class="prefs-select" id="prefsVisc">
-        <option value="">— Авто (по допускам) —</option>
-        <option>5W-30</option><option>5W-40</option><option>10W-40</option>
-        <option>0W-20</option><option>0W-30</option><option>0W-40</option>
-        <option>10W-30</option><option>15W-40</option>
-      </select>
-      <label class="prefs-label">Предпочтительный бренд</label>
-      <select class="prefs-select" id="prefsBrand">
-        <option value="">— Любой —</option>
-        <option>AREOL</option><option>COMMA</option><option>ZIC</option>
-        <option>LIQUI MOLY</option><option>CASTROL</option><option>MOBIL</option>
-        <option>SHELL</option><option>TOTACHI</option><option>SINTEC</option>
-        <option>LUKOIL</option><option>BARDAHL</option><option>MANNOL</option>
-        <option>REPSOL</option><option>HYUNDAI XTEER</option>
-      </select>
-      <div class="prefs-actions">
-        <button class="prefs-save" id="prefsSave">Применить</button>
-        <button class="prefs-reset" id="prefsReset">Сбросить</button>
-      </div>
-    </div>
-  </div>
 </body>
 </html>
