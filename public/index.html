@@ -149,6 +149,24 @@
     .pref-select:disabled { opacity: .4; pointer-events: none; }
     .pref-hint { font-size: 11px; color: var(--soft); margin-left: auto; }
 
+    /* ── Тумблер ИИ-проверки ── */
+    .pref-sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+    .toggle-wrap { display: flex; align-items: center; gap: 8px; }
+    .toggle-switch {
+      position: relative; width: 36px; height: 20px;
+      background: #d1d5db; border-radius: 10px; cursor: pointer;
+      transition: background .2s;
+    }
+    .toggle-switch.on { background: var(--green); }
+    .toggle-switch .toggle-knob {
+      position: absolute; top: 2px; left: 2px;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      transition: left .2s;
+    }
+    .toggle-switch.on .toggle-knob { left: 18px; }
+    .toggle-label { font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap; }
+
     .main {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -201,6 +219,18 @@
     .stock-count { color: var(--muted); }
     .vol-chip { font-size: 12px; font-weight: 600; color: var(--soft); }
 
+    /* ── GPT score бейдж ── */
+    .gpt-score-badge {
+      display: inline-flex; align-items: center; gap: 3px;
+      font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
+      padding: 2px 7px; border-radius: 4px;
+      white-space: nowrap;
+    }
+    .gpt-score-badge.high  { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+    .gpt-score-badge.mid   { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+    .gpt-score-badge.low   { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    .gpt-score-badge.nocheck { background: var(--surface2); color: var(--soft); border: 1px solid var(--border); }
+
     .card { background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
     .card-hd { padding: 13px 18px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
     .card-ico { font-size: 15px; line-height: 1; }
@@ -217,7 +247,6 @@
     .oil-volume   { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
     .oil-volume strong { color: var(--text); }
 
-    /* ── Два столбца: Источник слева, ИИ справа ── */
     .oil-cols {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -281,7 +310,7 @@
 
     .oil-card-warning { font-size: 11px; color: #92400e; background: #fef3c7; border-radius: 5px; padding: 4px 10px; margin: 6px 14px 0; }
 
-    /* ── Фильтры ТО — горизонтальная витрина ── */
+    /* ── Фильтры ТО ── */
     .filter-showcase {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -484,6 +513,17 @@
           <option>REPSOL</option><option>HYUNDAI XTEER</option>
         </select>
       </div>
+
+      <div class="pref-sep"></div>
+
+      <!-- Тумблер ИИ-проверки -->
+      <div class="toggle-wrap">
+        <div class="toggle-switch on" id="toggleGpt" title="Проверка масел через ИИ">
+          <div class="toggle-knob"></div>
+        </div>
+        <span class="toggle-label" id="toggleGptLabel">Проверка ИИ</span>
+      </div>
+
       <span class="pref-hint" id="prefsHint"></span>
     </div>
   </div>
@@ -548,6 +588,28 @@
     const selBrand   = document.getElementById('prefsBrand');
     const btnArmtek  = document.getElementById('btnArmtek');
     const btnRavenol = document.getElementById('btnRavenol');
+    const toggleGpt  = document.getElementById('toggleGpt');
+    const toggleGptLabel = document.getElementById('toggleGptLabel');
+
+    // ── GPT check тумблер — localStorage ──
+    let gptCheckEnabled = true;
+    try {
+      const saved = localStorage.getItem('vinoil_gptCheck');
+      if (saved !== null) gptCheckEnabled = saved === '1';
+    } catch (_) {}
+    updateToggleUI();
+
+    toggleGpt.addEventListener('click', () => {
+      gptCheckEnabled = !gptCheckEnabled;
+      try { localStorage.setItem('vinoil_gptCheck', gptCheckEnabled ? '1' : '0'); } catch (_) {}
+      updateToggleUI();
+      if (currentVin) loadLiquids(currentVin);
+    });
+
+    function updateToggleUI() {
+      toggleGpt.classList.toggle('on', gptCheckEnabled);
+      toggleGptLabel.textContent = gptCheckEnabled ? 'Проверка ИИ ✓' : 'Проверка ИИ';
+    }
 
     async function init() {
       const path = location.pathname.slice(1);
@@ -674,12 +736,13 @@
 
     async function loadLiquids(vin) {
       const localVin = vin;
-      setLoading(liquids, 'Запрашиваем данные…');
+      setLoading(liquids, gptCheckEnabled ? 'Запрашиваем данные + проверка ИИ…' : 'Запрашиваем данные…');
 
       try {
         const _p = new URLSearchParams();
         if (userPrefs.viscosity) _p.set('viscosity', userPrefs.viscosity);
         if (userPrefs.brand)     _p.set('brand', userPrefs.brand);
+        _p.set('gptCheck', gptCheckEnabled ? '1' : '0');
         const _qs = _p.toString() ? '?' + _p.toString() : '';
 
         const res  = await fetch('/oil/' + vin + _qs);
@@ -784,8 +847,6 @@
         { key: 'spark_plug',   icon: '⚡', label: 'Свечи зажигания',   cls: 'spark' },
       ];
 
-      let hasAny = false;
-
       const cards = GROUPS.map(g => {
         const items = filters[g.key] || [];
 
@@ -797,7 +858,6 @@
           '<div class="filter-card-body">' +
             (items.length
               ? items.map(it => {
-                  hasAny = true;
                   return '<div class="filter-part">' +
                     '<div class="filter-part-left">' +
                       '<span class="filter-part-code" onclick="copyArticle(this,\'' + esc(it.partCode) + '\')">' +
@@ -833,11 +893,22 @@
       const allSpecs = [...(r.specs?.api || []), ...(r.specs?.acea || []), ...(r.specs?.ilsac || [])].slice(0, 4);
       const logoSrc  = brandLogo(r.brand);
       const logoHtml = logoSrc ? '<img class="oil-card-logo" src="' + logoSrc + '" alt="' + esc(r.brand) + '" onerror="this.classList.add(\'hidden\')">' : '';
+
+      // GPT score бейдж
+      let gptBadge = '';
+      if (r._gptScore !== undefined && r._gptScore !== null) {
+        const s = r._gptScore;
+        const cls = s >= 8 ? 'high' : s >= 7 ? 'mid' : 'low';
+        gptBadge = '<span class="gpt-score-badge ' + cls + '">ИИ: ' + s + '/10</span>';
+      } else if (r._gptScore === null) {
+        gptBadge = '<span class="gpt-score-badge nocheck">ИИ: —</span>';
+      }
+
       return '<div class="oil-card">' +
         '<div class="oil-card-top">' +
           '<div class="oil-card-top-main">' +
             '<div>' +
-              '<div class="oil-card-brand">' + esc(r.brand) + '</div>' +
+              '<div class="oil-card-brand">' + esc(r.brand) + ' ' + gptBadge + '</div>' +
               '<div class="oil-card-article" onclick="copyArticle(this, \'' + esc(r.article) + '\')">' +
                 esc(r.article) +
                 '<svg class="copy-ico" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
@@ -869,8 +940,6 @@
     function setError(el, msg) { el.innerHTML = emptyHtml('⚠️', msg); }
     function emptyHtml(icon, msg) { return '<div class="empty"><div class="empty-ico">' + icon + '</div><div class="empty-txt">' + msg + '</div></div>'; }
 
-    // Маппинг бренд → имя файла в /logo/ (без расширения)
-    // Файлы на диске: areol.webp, castrol.webp, comma.webp, Shell.webp и т.д.
     const BRAND_LOGOS = {
       'LIQUI MOLY':'liquimoly','CASTROL':'castrol','MOBIL':'mobil','SHELL':'Shell',
       'ZIC':'zic','TOTACHI':'totachi','SINTEC':'sintec','LUKOIL':'lukoil','ROLF':'rolf',

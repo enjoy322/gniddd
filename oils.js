@@ -5,6 +5,7 @@ const JSZip   = require("jszip");
 const { DOMParser } = require("@xmldom/xmldom");
 
 const CATALOG_PATH = path.join(__dirname, "oil-catalog.json");
+const OVERRIDE_PATH = path.join(__dirname, "brand-specs-override.json");
 
 // ─────────────────────────────────────────────────────────────
 // ПРИОРИТЕТНЫЕ БРЕНДЫ (первая тройка — главные, остальные по убыванию)
@@ -14,52 +15,43 @@ const BRAND_PRIORITY = [
   "COMMA",          // #2
   "ZIC",            // #3
   "LUKOIL",         // #4
-  "LIQUI MOLY", "CASTROL", "MOBIL", "SHELL", "TOTACHI", "SINTEC",
+  "SINTEC",         // #5
+  "LIQUI MOLY", "CASTROL", "MOBIL", "SHELL", "TOTACHI",
   "ROLF", "MANNOL", "REPSOL", "BARDAHL", "TAKAYAMA", "HYUNDAI XTEER",
   "TOYOTA", "LEXUS", "MOBIS", "NISSAN", "MITSUBISHI", "VAG", "GM",
   "IDEMITSU", "REINWELL", "PROFI-CAR", "FURO", "PEXOL",
   "HI-GEAR", "LAVR", "ВМПАВТО",
 ];
 
-// Топ-бренды для витрины (первая тройка получает макс. бонус)
-const TOP_BRANDS = ["AREOL", "COMMA", "ZIC", "LUKOIL"];
+// Топ-бренды (получают макс. бонус, но ТОЛЬКО если допуски совпали)
+const TOP_BRANDS    = ["AREOL", "COMMA", "ZIC"];
+// Средне-приоритетные
+const MID_BRANDS    = ["LUKOIL", "SINTEC"];
 
 // ─────────────────────────────────────────────────────────────
-// ИЕРАРХИЯ API (обратная совместимость: SP заменяет SN, SN заменяет SM и т.д.)
+// ИЕРАРХИЯ API
 // ─────────────────────────────────────────────────────────────
 const API_GASOLINE_HIERARCHY = ["SA", "SB", "SC", "SD", "SE", "SF", "SG", "SH", "SJ", "SL", "SM", "SN", "SP"];
 const API_DIESEL_HIERARCHY   = ["CA", "CB", "CC", "CD", "CE", "CF", "CF2", "CG4", "CH4", "CI4", "CJ4", "CK4", "FA4"];
 
 // ─────────────────────────────────────────────────────────────
-// ИЕРАРХИЯ ILSAC (обратная совместимость: GF-6A заменяет GF-5 и т.д.)
+// ИЕРАРХИЯ ILSAC
 // ─────────────────────────────────────────────────────────────
 const ILSAC_HIERARCHY = ["GF-1", "GF-2", "GF-3", "GF-4", "GF-5", "GF-6A", "GF-6B"];
 
 // ─────────────────────────────────────────────────────────────
-// ИЕРАРХИЯ ACEA (сложнее: A/B — обычные, C — low SAPS)
-// A3/B4 > A3/B3 > A1/B1
-// C5, C3, C2 — low SAPS, совместимы между собой с оговорками
+// ИЕРАРХИЯ ACEA
 // ─────────────────────────────────────────────────────────────
 const ACEA_A_HIERARCHY = ["A1", "A3", "A5"];
 const ACEA_B_HIERARCHY = ["B1", "B3", "B4", "B5"];
 const ACEA_C_HIERARCHY = ["C1", "C2", "C3", "C4", "C5"];
 
-// Региональный приоритет вязкостей
-const VISCOSITY_PRIORITY = [
-  "5W-30", "5W-40", "10W-40", "10W-30",
-  "0W-30", "0W-40", "0W-20", "5W-50", "15W-40",
-];
-
 // ─────────────────────────────────────────────────────────────
-// ОБЪЁМ КАНИСТРЫ — целевой объём для подбора
+// ОБЪЁМ КАНИСТРЫ — СТРОГО 4л или 5л
 // ─────────────────────────────────────────────────────────────
 function pickCanisterVolume(oilVolume) {
-  if (!oilVolume) return null;
-  const standard = [1, 2, 3, 4, 5, 6, 7, 8, 10, 20];
-  for (const vol of standard) {
-    if (vol >= oilVolume) return vol;
-  }
-  return 10;
+  if (!oilVolume) return 4; // по умолчанию 4л
+  return oilVolume > 4.3 ? 5 : 4;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -85,24 +77,77 @@ function clean(v) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// ЗАГРУЗКА OVERRIDE-ФАЙЛА (ручные допуски для топ-брендов)
+// ─────────────────────────────────────────────────────────────
+let _overrideCache = null;
+
+function loadOverrides() {
+  if (_overrideCache !== null) return _overrideCache;
+  try {
+    if (fs.existsSync(OVERRIDE_PATH)) {
+      _overrideCache = JSON.parse(fs.readFileSync(OVERRIDE_PATH, "utf-8"));
+      console.log(`[oils] loaded ${Object.keys(_overrideCache).length} overrides from brand-specs-override.json`);
+    } else {
+      _overrideCache = {};
+    }
+  } catch (e) {
+    console.error("[oils] override load error:", e.message);
+    _overrideCache = {};
+  }
+  return _overrideCache;
+}
+
+// Сброс кэша (вызывать если файл обновился)
+function resetOverrideCache() {
+  _overrideCache = null;
+}
+
+// Применяет override к товару: добавляет oem_add, проверяет oem_exclude_for
+function applyOverride(item, requiredSpecs) {
+  const overrides = loadOverrides();
+  const override = overrides[item.article] || overrides[item.sku];
+  if (!override) return { item, excluded: false };
+
+  // Добавляем допуски
+  if (override.oem_add && override.oem_add.length) {
+    const existing = new Set((item.all_specs || []).map(s => normalizeSpec(s)));
+    const newSpecs = override.oem_add.filter(s => !existing.has(normalizeSpec(s)));
+    item = {
+      ...item,
+      oem: [...(item.oem || []), ...newSpecs],
+      all_specs: [...(item.all_specs || []), ...newSpecs],
+    };
+  }
+
+  // Проверяем исключения: если требуемый допуск в oem_exclude_for — отсеиваем
+  if (override.oem_exclude_for && override.oem_exclude_for.length && requiredSpecs.length) {
+    const excludeSet = new Set(override.oem_exclude_for.map(s => normalizeSpec(s)));
+    for (const req of requiredSpecs) {
+      if (excludeSet.has(normalizeSpec(req))) {
+        return { item, excluded: true };
+      }
+    }
+  }
+
+  return { item, excluded: false };
+}
+
+// ─────────────────────────────────────────────────────────────
 // РАЗБОР ДОПУСКА НА СОСТАВНЫЕ ЧАСТИ
 // ─────────────────────────────────────────────────────────────
 
-// "ACEAA3/B4" → ["A3", "B4"]
 function parseAceaParts(normalized) {
   const m = normalized.match(/^ACEA([A-Z]\d(?:\/[A-Z]\d)*)$/);
   if (!m) return null;
   return m[1].split("/");
 }
 
-// "APISP" → ["SP"], "APISN/CF" → ["SN", "CF"]
 function parseApiParts(normalized) {
   const m = normalized.match(/^API([A-Z]{2}(?:\d)?(?:\/[A-Z]{2}(?:\d)?)*)$/);
   if (!m) return null;
   return m[1].split("/");
 }
 
-// "ILSACGF-5" or "GF-5" → "GF-5"
 function parseIlsacLevel(normalized) {
   const m = normalized.match(/(?:ILSAC)?(GF-?\d[A-B]?)$/);
   return m ? m[1].replace(/(\d)([AB])/, "$1$2").replace("GF", "GF-").replace("GF--", "GF-") : null;
@@ -111,14 +156,9 @@ function parseIlsacLevel(normalized) {
 // ─────────────────────────────────────────────────────────────
 // УМНАЯ СОВМЕСТИМОСТЬ ДОПУСКОВ
 // ─────────────────────────────────────────────────────────────
-
-/**
- * Возвращает score совместимости (0 = не совместим, 1+ = совместим)
- * Чем выше score — тем лучше совпадение
- */
 function specCompatibilityScore(required, candidate) {
   if (!required || !candidate) return 0;
-  if (required === candidate) return 10; // точное совпадение
+  if (required === candidate) return 10;
 
   // ── API совместимость ──
   const reqApi = parseApiParts(required);
@@ -127,16 +167,13 @@ function specCompatibilityScore(required, candidate) {
     let bestScore = 0;
     for (const r of reqApi) {
       for (const c of candApi) {
-        // Бензиновые (S-серия)
         if (r.startsWith("S") && c.startsWith("S")) {
           const reqIdx = API_GASOLINE_HIERARCHY.indexOf(r);
           const candIdx = API_GASOLINE_HIERARCHY.indexOf(c);
           if (reqIdx >= 0 && candIdx >= 0 && candIdx >= reqIdx) {
-            // Кандидат равен или выше требуемого — совместим
             bestScore = Math.max(bestScore, candIdx === reqIdx ? 10 : 8);
           }
         }
-        // Дизельные (C-серия)
         if (r.startsWith("C") && c.startsWith("C")) {
           const reqIdx = API_DIESEL_HIERARCHY.indexOf(r);
           const candIdx = API_DIESEL_HIERARCHY.indexOf(c);
@@ -144,7 +181,6 @@ function specCompatibilityScore(required, candidate) {
             bestScore = Math.max(bestScore, candIdx === reqIdx ? 10 : 8);
           }
         }
-        // Точное совпадение для других
         if (r === c) bestScore = Math.max(bestScore, 10);
       }
     }
@@ -169,38 +205,25 @@ function specCompatibilityScore(required, candidate) {
   if (reqAcea && candAcea) {
     let matches = 0;
     for (const r of reqAcea) {
-      const rClass = r[0]; // A, B, or C
+      const rClass = r[0];
       for (const c of candAcea) {
         const cClass = c[0];
         if (rClass !== cClass) continue;
+        if (r === c) { matches++; continue; }
 
-        if (r === c) {
-          matches++;
-          continue;
-        }
-
-        // ACEA C — low SAPS: C5 ≈ C2 (низкозольные), C3 — универсальный
         if (rClass === "C") {
           const reqCIdx = ACEA_C_HIERARCHY.indexOf(r);
           const candCIdx = ACEA_C_HIERARCHY.indexOf(c);
-          // C3 совместим с C2 (C3 строже), C5 совместим с C2
           if (reqCIdx >= 0 && candCIdx >= 0) {
-            // Если кандидат — C3, а требуется C2 — ОК (C3 более строгий)
-            // Если кандидат — C5, а требуется C2 — ОК (C5 modern low SAPS)
             if (candCIdx >= reqCIdx) matches++;
-            // C2 запрошен, C5 есть — тоже ОК
             else if (r === "C2" && (c === "C3" || c === "C5")) matches++;
           }
         }
-
-        // ACEA A — обычные бензиновые
         if (rClass === "A") {
           const reqAIdx = ACEA_A_HIERARCHY.indexOf(r);
           const candAIdx = ACEA_A_HIERARCHY.indexOf(c);
           if (reqAIdx >= 0 && candAIdx >= 0 && candAIdx >= reqAIdx) matches++;
         }
-
-        // ACEA B — дизельные
         if (rClass === "B") {
           const reqBIdx = ACEA_B_HIERARCHY.indexOf(r);
           const candBIdx = ACEA_B_HIERARCHY.indexOf(c);
@@ -211,15 +234,36 @@ function specCompatibilityScore(required, candidate) {
     return matches > 0 ? (matches * 5 + 3) : 0;
   }
 
-  // ── OEM допуски (точное совпадение) ──
+  // ── OEM допуски — частичное совпадение ──
+  // RN0700 == RN0700, MB229.5 == MB229.5
+  // Также: "RN 0700" нормализованный == "RN0700"
+  // Уже нормализовано — точное совпадение покрыто выше (return 10)
   return 0;
 }
 
 
 // ─────────────────────────────────────────────────────────────
-// MATCHOIL — основная функция подбора (ПОЛНОСТЬЮ ПЕРЕПИСАНА)
+// ОПРЕДЕЛЕНИЕ ТИПА ДОПУСКА (для весов)
 // ─────────────────────────────────────────────────────────────
-function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = {}) {
+function isOemSpec(spec) {
+  // OEM: VW502.00, MB229.5, RN0700, BMWLL-04, FORDWSS-M2C913 и т.д.
+  return /^(VW|MB|RN|BMW|FORD|GM|PSA|FIAT|PORSCHE|DEXOS)/i.test(spec)
+    || /^\d{3}\.\d/.test(spec); // 229.5, 502.00
+}
+
+function specWeight(spec) {
+  if (isOemSpec(spec)) return 15;     // OEM — самый важный
+  if (/^ACEA/.test(spec)) return 8;
+  if (/GF/.test(spec) || /^ILSAC/.test(spec)) return 7;
+  if (/^API/.test(spec)) return 6;
+  return 5;
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// MATCHOIL — основная функция подбора (v2 — жёсткий фильтр)
+// ─────────────────────────────────────────────────────────────
+function matchOil({ specs = [], volume = null, viscosity = null, prefs = {}, limit = 6 } = {}) {
   let catalog;
   try {
     catalog = JSON.parse(fs.readFileSync(CATALOG_PATH, "utf-8"));
@@ -228,8 +272,9 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
     return [];
   }
 
-  const normalizedSpecs = specs.map(s => normalizeSpec(s));
+  const normalizedSpecs = specs.map(s => normalizeSpec(s)).filter(Boolean);
   const targetVolume    = pickCanisterVolume(volume);
+  const hasRequiredSpecs = normalizedSpecs.length > 0;
 
   // ── Определяем рабочую вязкость ──────────────────────────
   const clientViscosity  = prefs?.viscosity ? normalizeViscosity(prefs.viscosity) : null;
@@ -243,18 +288,14 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
   // ── Предпочтение бренда ───────────────────────────────────
   const preferredBrand = prefs?.brand ? prefs.brand.toUpperCase() : null;
 
-  // ── Допустимый диапазон объёма канистры ──────────────────
-  let minVol = null;
-  let maxVol = null;
-  if (targetVolume) {
-    minVol = Math.max(3, targetVolume - 1);
-    maxVol = Math.min(10, targetVolume + 2);
-  }
-
-  console.log(`[matchOil] specs=${JSON.stringify(normalizedSpecs)} viscosity=${workingViscosity} volume=${volume}л→target=${targetVolume}л min=${minVol} max=${maxVol}`);
+  console.log(`[matchOil] specs=${JSON.stringify(normalizedSpecs)} viscosity=${workingViscosity} volume=${volume}л→canister=${targetVolume}л limit=${limit}`);
 
   // ── Скоринг ───────────────────────────────────────────────
-  const scored = catalog.map(item => {
+  const scored = catalog.map(rawItem => {
+
+    // ── Применяем override допусков (для топ-брендов) ─────────
+    const { item, excluded } = applyOverride({ ...rawItem }, normalizedSpecs);
+    if (excluded) return null;
 
     // ── Фильтр по вязкости (строгий) ─────────────────────────
     const itemViscosity = normalizeViscosity(item.viscosity);
@@ -278,13 +319,14 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
       }
     }
 
-    // ── Фильтр объёма ─────────────────────────────────────────
-    if (item.volume != null && item.volume < 2) return null;
+    // ── Фильтр объёма — СТРОГО 4л или 5л ─────────────────────
+    if (item.volume == null || item.volume < 2) return null;
 
-    if (minVol !== null) {
-      if (item.volume == null || item.volume < minVol || item.volume > maxVol) {
-        return null;
-      }
+    // Допускаем канистры: целевой объём ± 0.5л
+    // Т.е. для target=4: от 3.5 до 4.5
+    // Для target=5: от 4.5 до 5.5
+    if (Math.abs(item.volume - targetVolume) > 0.5) {
+      return null;
     }
 
     // ── СКОРИНГ ───────────────────────────────────────────────
@@ -298,11 +340,11 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
 
     let totalSpecScore = 0;
     let specMatchCount = 0;
+    let oemMatchCount  = 0;
 
     for (const reqSpec of normalizedSpecs) {
       if (!reqSpec) continue;
 
-      // Ищем лучший match среди всех допусков товара
       let bestMatch = 0;
       for (const itemSpec of itemSpecs) {
         const compat = specCompatibilityScore(reqSpec, itemSpec);
@@ -311,77 +353,90 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
 
       if (bestMatch > 0) {
         specMatchCount++;
+        if (isOemSpec(reqSpec)) oemMatchCount++;
 
-        // Определяем тип допуска для весов
-        if (/^[A-Z]{2}\d{3,4}|^\d{3}\.\d|RN|MB|BMW|VW|GM/i.test(reqSpec)) {
-          // OEM допуск — самый важный
-          totalSpecScore += bestMatch * 12;
-        } else if (reqSpec.startsWith("ACEA")) {
-          totalSpecScore += bestMatch * 8;
-        } else if (reqSpec.includes("GF") || reqSpec.startsWith("ILSAC")) {
-          totalSpecScore += bestMatch * 7;
-        } else if (reqSpec.startsWith("API")) {
-          totalSpecScore += bestMatch * 6;
-        } else {
-          totalSpecScore += bestMatch * 5;
-        }
+        const weight = specWeight(reqSpec);
+        totalSpecScore += bestMatch * weight;
       }
     }
 
     score += totalSpecScore;
 
-    // ── Штраф за полное отсутствие совпадений ─────────────────
-    if (normalizedSpecs.length > 0 && specMatchCount === 0) {
-      score -= 500;
+    // ─────────────────────────────────────────────────────────
+    // ЖЁСТКИЙ ФИЛЬТР: если есть требуемые допуски, но ни один
+    // не совпал — ПОЛНЫЙ ОТСЕВ (не штраф, а null)
+    // ─────────────────────────────────────────────────────────
+    if (hasRequiredSpecs && specMatchCount === 0) {
+      return null; // ← ключевое изменение v2
     }
 
     // ── Бонус за количество совпавших допусков ────────────────
     if (specMatchCount > 0) {
       const matchRatio = specMatchCount / normalizedSpecs.length;
-      score += matchRatio * 50; // до +50 за 100% матч
+      score += matchRatio * 50;
     }
 
-    // ── Объём канистры — бонус ────────────────────────────────
-    if (targetVolume && item.volume != null) {
-      if (item.volume === targetVolume)          score += 30;
-      else if (item.volume === targetVolume + 1) score += 15;
-      else                                       score += 3;
+    // ── Бонус за OEM-совпадение (самое ценное) ────────────────
+    if (oemMatchCount > 0) {
+      score += oemMatchCount * 30;
     }
 
-    // ── Приоритет бренда ──────────────────────────────────────
+    // ── Объём канистры — бонус за точное попадание ─────────────
+    if (item.volume === targetVolume) score += 20;
+
+    // ── Приоритет бренда (работает ТОЛЬКО если допуски совпали) ─
     const itemBrand = (item.brand || "").toUpperCase();
 
     // Предпочтение клиента — главный приоритет
-    if (preferredBrand && itemBrand === preferredBrand) score += 300;
+    if (preferredBrand && itemBrand === preferredBrand) score += 200;
 
-    // Топ-бренды: AREOL=+100, COMMA=+90, ZIC=+80, LUKOIL=+70
+    // Топ-бренды: AREOL=+80, COMMA=+70, ZIC=+60
     const topIdx = TOP_BRANDS.indexOf(itemBrand);
     if (topIdx >= 0) {
-      score += 100 - (topIdx * 10);
+      score += 80 - (topIdx * 10);
     }
 
-    // Остальные бренды из списка
+    // Средне-приоритетные: LUKOIL=+40, SINTEC=+35
+    const midIdx = MID_BRANDS.indexOf(itemBrand);
+    if (midIdx >= 0) {
+      score += 40 - (midIdx * 5);
+    }
+
+    // Остальные бренды из списка — маленький бонус
     const brandIdx = BRAND_PRIORITY.indexOf(itemBrand);
-    if (brandIdx >= 0) {
-      score += Math.max(0, 20 - brandIdx);
+    if (brandIdx >= 0 && topIdx < 0 && midIdx < 0) {
+      score += Math.max(0, 15 - brandIdx);
     }
 
-    // Небольшой бонус за более низкую цену (при прочих равных)
+    // Небольшой бонус за более низкую цену
     score -= item.price / 50000;
 
     return {
       ...item,
       _score:          score,
       _specMatchCount: specMatchCount,
+      _oemMatchCount:  oemMatchCount,
       _totalSpecScore: totalSpecScore,
     };
   }).filter(Boolean);
 
   scored.sort((a, b) => b._score - a._score);
 
-  // ── Топ-3 с разными брендами ──────────────────────────────
+  // ── Топ с разными брендами ─────────────────────────────────
   const result     = [];
   const usedBrands = new Set();
+
+  // Каскадный подбор: Топ → Средние → Остальные
+  function fillFromTier(tierBrands) {
+    for (const item of scored) {
+      if (result.length >= limit) break;
+      const b = item.brand.toUpperCase();
+      if (usedBrands.has(b)) continue;
+      if (tierBrands && !tierBrands.includes(b)) continue;
+      result.push(item);
+      usedBrands.add(b);
+    }
+  }
 
   // Если клиент выбрал бренд — он первый
   if (preferredBrand) {
@@ -392,25 +447,22 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
     }
   }
 
-  // Заполняем до 3 разных брендов
-  for (const item of scored) {
-    if (result.length >= 3) break;
-    const b = item.brand.toUpperCase();
-    if (!usedBrands.has(b)) {
-      result.push(item);
-      usedBrands.add(b);
-    }
-  }
+  // 1. Топ-бренды (AREOL, COMMA, ZIC)
+  fillFromTier(TOP_BRANDS);
+  // 2. Средне-приоритетные (LUKOIL, SINTEC)
+  fillFromTier(MID_BRANDS);
+  // 3. Все остальные
+  fillFromTier(null);
 
-  // Дозаполняем если меньше 3
-  if (result.length < 3) {
+  // Дозаполняем если меньше limit (допускаем повтор бренда)
+  if (result.length < limit) {
     for (const item of scored) {
-      if (result.length >= 3) break;
+      if (result.length >= limit) break;
       if (!result.includes(item)) result.push(item);
     }
   }
 
-  console.log(`[matchOil] results: ${result.map(r => `${r.brand} ${r.article} score=${Math.round(r._score)} specMatch=${r._specMatchCount}/${normalizedSpecs.length} specScore=${r._totalSpecScore} vol=${r.volume}л`).join(" | ")}`);
+  console.log(`[matchOil] results: ${result.map(r => `${r.brand} ${r.article} score=${Math.round(r._score)} specMatch=${r._specMatchCount}/${normalizedSpecs.length} oemMatch=${r._oemMatchCount} vol=${r.volume}л`).join(" | ")}`);
 
   // ── Формируем предупреждения ──────────────────────────────
   return result.map(item => {
@@ -419,9 +471,9 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
 
     if (viscosityNotRecommended) {
       warning = "вязкость не рекомендована производителем";
-    } else if (!hasSpecMatch && normalizedSpecs.length > 0) {
-      warning = "требует перепроверки допусков";
     }
+    // Больше не нужен warning "требует перепроверки допусков"
+    // т.к. товары без совпадения допусков отсеяны полностью
 
     return formatResult(item, warning);
   });
@@ -448,12 +500,14 @@ function formatResult(item, warning = null) {
       acea:  item.acea,
       oem:   item.oem,
     },
-    _score: Math.round(item._score),
+    _score:          Math.round(item._score),
+    _specMatchCount: item._specMatchCount,
+    _oemMatchCount:  item._oemMatchCount,
   };
 }
 
 // ─────────────────────────────────────────────────────────────
-// НОРМАЛИЗАЦИЯ XLSX → oil-catalog.json
+// НОРМАЛИЗАЦИЯ XLSX → oil-catalog.json (без изменений)
 // ─────────────────────────────────────────────────────────────
 async function normalizeOilCatalog(xlsxPath = path.join(__dirname, "main.xlsx")) {
   console.log("[oils] reading", xlsxPath);
@@ -536,4 +590,4 @@ function parseSheet(xml, strings) {
   return rows;
 }
 
-module.exports = { normalizeOilCatalog, matchOil };
+module.exports = { normalizeOilCatalog, matchOil, resetOverrideCache };
