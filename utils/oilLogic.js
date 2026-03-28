@@ -23,21 +23,16 @@ function pickViscosity(bestItems, altItems) {
   return all[0] || null;
 }
 
-// ── Подбор из каталога с учётом предпочтений клиента ──
+// ── buildRecommendations — принимает oil в формате { volume, oil: { best, alternative } }
 function buildRecommendations(oil, prefs = {}) {
   try {
-    const specs     = [];
     const oilData   = oil?.oil || {};
     const bestItems = oilData?.best        || [];
     const altItems  = oilData?.alternative || [];
 
-    // ── ФИКС БАГ 2б: выбираем вязкость ПЕРВОЙ, затем берём specs
-    //    только из блока с совпадающей вязкостью, а не из всех сразу.
-    //    Иначе C2 (0W-20) и A5 (5W-30) смешиваются и портят подбор.
     const viscosity = pickViscosity(bestItems, altItems);
     const workingVisc = viscosity ? viscosity.replace(/\s/g, "").toUpperCase() : null;
 
-    // Находим блок best, вязкость которого совпадает с выбранной
     const matchedBlock = workingVisc
       ? bestItems.find(item =>
           (item.viscosity || []).some(v => v.replace(/\s/g, "").toUpperCase() === workingVisc)
@@ -45,11 +40,11 @@ function buildRecommendations(oil, prefs = {}) {
       : bestItems[0];
 
     const targetBlock = matchedBlock || bestItems[0];
+    const specs = [];
     if (targetBlock) {
       specs.push(...(targetBlock.specs     || []));
       specs.push(...(targetBlock.viscosity || []));
     }
-    // ── конец фикса
 
     const oilVolume = oil?.volume ?? null;
 
@@ -145,4 +140,77 @@ async function fallbackGlobal(car) {
   }
 }
 
-module.exports = { buildRecommendations, resolveUrl, fallbackFromPage, fallbackGlobal };
+// ── gptCheck — ВСЕГДА запускается параллельно, это главный источник для подбора ──
+// parsedOil — данные с сайта (для контекста GPT), может быть null
+async function gptCheck(car, parsedOil) {
+  console.log(`[gptCheck] ${car.brand} ${car.model} ${car.year} engine=${car.engine.code}`);
+
+  // Передаём GPT данные с сайта как контекст чтобы он мог уточнить
+  const siteContext = parsedOil
+    ? `Для справки — данные с сайта подбора: объём ${parsedOil.volume}л, допуски: ${
+        JSON.stringify((parsedOil.oil?.best || []).map(b => ({ specs: b.specs, viscosity: b.viscosity })))
+      }`
+    : "Данных с сайта нет.";
+
+  const prompt = `
+Ты автоэксперт по моторным маслам. Дай точные данные на основе официальной документации производителя.
+
+Автомобиль: ${car.brand} ${car.model} ${car.year} год
+Двигатель: ${car.engine.code}, объём ${car.engine.volume}л, ${car.engine.type}, ${car.power_hp} л.с.
+
+${siteContext}
+
+Верни строго JSON без markdown:
+{
+  "found": true,
+  "volume": 3.8,
+  "best": [
+    { "specs": ["ILSAC GF-5", "ACEA C2"], "viscosity": ["5W-30"] }
+  ],
+  "alternative": [
+    { "specs": ["ACEA A3/B4"], "viscosity": ["5W-40"] }
+  ],
+  "note": "Опционально: короткое примечание если есть важная инфо (не более 80 символов)"
+}
+
+Правила:
+- volume — объём заливки масла в двигатель в литрах (БЕЗ фильтра, точное число)
+- specs — официальные допуски производителя (ACEA, API, OEM коды)
+- viscosity — рекомендуемая вязкость для умеренного климата (-20..-30°C)
+- best — лучший вариант по допускам производителя
+- alternative — допустимая альтернатива (другая вязкость или менее строгий допуск)
+- Если не знаешь точно — верни { "found": false }
+`.trim();
+
+  try {
+    const response = await openai.responses.create({ model: "gpt-5.4-mini", input: prompt });
+    const result = JSON.parse(response.output_text.replace(/```json|```/g, "").trim());
+    console.log(`[gptCheck] volume=${result.volume} best=${JSON.stringify(result.best)}`);
+    return result;
+  } catch (e) {
+    console.error("[gptCheck] error:", e.message);
+    return null;
+  }
+}
+
+// ── Нормализует ответ GPT/парсера в единый формат oil ──
+function normalizeOilData(raw) {
+  if (!raw || !raw.found) return null;
+  return {
+    volume: raw.volume || null,
+    note:   raw.note   || null,
+    oil: {
+      best:        raw.best        || [],
+      alternative: raw.alternative || [],
+    }
+  };
+}
+
+module.exports = {
+  buildRecommendations,
+  resolveUrl,
+  fallbackFromPage,
+  fallbackGlobal,
+  gptCheck,
+  normalizeOilData,
+};
