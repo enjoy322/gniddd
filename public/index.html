@@ -869,6 +869,8 @@
     function setError(el, msg) { el.innerHTML = emptyHtml('⚠️', msg); }
     function emptyHtml(icon, msg) { return '<div class="empty"><div class="empty-ico">' + icon + '</div><div class="empty-txt">' + msg + '</div></div>'; }
 
+    // Маппинг бренд → имя файла в /logo/ (без расширения)
+    // Файлы на диске: areol.webp, castrol.webp, comma.webp, Shell.webp и т.д.
     const BRAND_LOGOS = {
       'LIQUI MOLY':'liquimoly','CASTROL':'castrol','MOBIL':'mobil','SHELL':'Shell',
       'ZIC':'zic','TOTACHI':'totachi','SINTEC':'sintec','LUKOIL':'lukoil','ROLF':'rolf',
@@ -877,9 +879,15 @@
       'LEXUS':'lexus','NISSAN':'nissan','MITSUBISHI':'mitsubishi','VAG':'volkswagen',
       'VOLKSWAGEN':'volkswagen','GM':'gm','IDEMITSU':'idemitsu','REINWELL':'reinwell',
       'PROFI-CAR':'profi-car','FURO':'furo','PEXOL':'pexol','COMMA':'comma',
-      'HI-GEAR':'hi-gear','ВМПАВТО':'вмпавто',
+      'HI-GEAR':'hi-gear','ВМПАВТО':'вмпавто','LAVR':'no',
     };
-    function brandLogo(brand) { const file = BRAND_LOGOS[(brand||'').toUpperCase()]||null; return file ? '/logo/'+file+'.webp' : null; }
+    function brandLogo(brand) {
+      if (!brand) return null;
+      const key = brand.toUpperCase().trim();
+      const file = BRAND_LOGOS[key] || null;
+      if (!file) return null;
+      return '/logo/' + file + '.webp';
+    }
 
     function copyArticle(el, article) {
       navigator.clipboard.writeText(article).then(() => { el.style.color='var(--green)'; setTimeout(()=>el.style.color='',1200); showToast('Скопировано: '+article,2000); })
