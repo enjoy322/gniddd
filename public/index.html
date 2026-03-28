@@ -167,14 +167,16 @@
 
     /* ── ЛОГОТИП БРЕНДА ── */
     .oil-card-logo {
-      width: 64px;
-      height: 32px;
+      height: 22px;
+      width: auto;
+      max-width: 80px;
       object-fit: contain;
-      object-position: center;
-      flex-shrink: 0;
-      opacity: 0.9;
+      object-position: left center;
+      opacity: 0.85;
       display: block;
+      flex-shrink: 0;
     }
+    .oil-card-logo.hidden { display: none; }
 
     /* ── КАРТОЧКА МАСЛА ── */
     .oil-card {
@@ -188,12 +190,22 @@
     }
 
     .oil-card-top {
-      padding: 14px 16px 12px;
+      padding: 14px 16px 10px;
       border-bottom: 1px solid var(--border);
+    }
+
+    .oil-card-top-main {
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
       gap: 12px;
+      margin-bottom: 8px;
+    }
+
+    .oil-card-top-logo {
+      display: flex;
+      align-items: center;
+      min-height: 22px;
     }
 
     .oil-card-brand {
@@ -793,23 +805,30 @@
         ...(r.specs?.api   || []),
         ...(r.specs?.acea  || []),
         ...(r.specs?.ilsac || []),
-      ].slice(0, 4); // не больше 4 чипов
+      ].slice(0, 4);
+
+      const logoSrc  = brandLogo(r.brand);
+      // onerror: прячем img чтобы не было мерцания при отсутствующем файле
+      const logoHtml = logoSrc
+        ? '<img class="oil-card-logo" src="' + logoSrc + '" alt="' + esc(r.brand) + '" onerror="this.classList.add(\'hidden\')">'
+        : '';
 
       return '<div class="oil-card">' +
 
-        // Шапка: бренд + артикул | цена
+        // Шапка: ряд 1 — [бренд+артикул] | [цена]
         '<div class="oil-card-top">' +
-          '<div>' +
-            '<div class="oil-card-brand">' + esc(r.brand) + '</div>' +
-            '<div class="oil-card-article" onclick="copyArticle(this, \'' + esc(r.article) + '\')">' +
-              esc(r.article) +
-              '<svg class="copy-ico" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+          '<div class="oil-card-top-main">' +
+            '<div>' +
+              '<div class="oil-card-brand">' + esc(r.brand) + '</div>' +
+              '<div class="oil-card-article" onclick="copyArticle(this, \'' + esc(r.article) + '\')">' +
+                esc(r.article) +
+                '<svg class="copy-ico" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+              '</div>' +
             '</div>' +
-          '</div>' +
-          '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">' +
-            '<img class="oil-card-logo" src="' + brandLogo(r.brand) + '" alt="' + esc(r.brand) + '" onerror="this.src=\'/logo/no.webp\'">' +
             '<div class="oil-card-price">' + formatPrice(r.price) + ' <span>₽</span></div>' +
           '</div>' +
+          // Ряд 2 — логотип бренда (отдельно, не мешает цене)
+          '<div class="oil-card-top-logo">' + logoHtml + '</div>' +
         '</div>' +
 
         // Тело: описание + чипы
@@ -828,7 +847,7 @@
           '</div>' +
         '</div>' +
 
-        // Футер: остаток + объём
+        // Футер: остаток + тип масла
         '<div class="oil-card-footer">' +
           '<div class="stock-badge">' +
             '<div class="stock-dot ' + (stockOk ? 'ok' : 'low') + '"></div>' +
@@ -901,7 +920,10 @@
     };
 
     function brandLogo(brand) {
-      const file = BRAND_LOGOS[(brand || '').toUpperCase()] || BRAND_LOGOS[brand] || 'no';
+      const key  = (brand || '').toUpperCase();
+      const file = BRAND_LOGOS[key] || BRAND_LOGOS[brand] || null;
+      // Если бренд неизвестен или явно помечен как 'no' — не рендерим img
+      if (!file || file === 'no') return null;
       return '/logo/' + file + '.webp';
     }
 

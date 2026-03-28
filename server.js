@@ -127,7 +127,7 @@ async function extractVINwithPrompt(filePath, promptText) {
         },
         {
           type:      "input_image",
-          image_url: { url: `data:image/jpeg;base64,${base64}` }  // ИСПРАВЛЕНО: был просто строкой, теперь объект { url: "..." }
+          image_url: `data:image/jpeg;base64,${base64}`
         }
       ]
     }]
@@ -147,7 +147,7 @@ async function extractVIN(filePath) {
         return vin;
       }
     } catch (e) {
-      console.error(`[VIN OCR] attempt ${attempt + 1} error:`, e);  // ИСПРАВЛЕНО: e вместо e.message — видим полный стектрейс
+      console.error(`[VIN OCR] attempt ${attempt + 1} error:`, e.message);
     }
   }
   console.log("[VIN OCR] all attempts failed");
@@ -365,22 +365,53 @@ app.get("/car-info/:vin", async (req, res) => {
   }
 });
 
+// Приоритет вязкостей для умеренного климата (RU/СНГ): 5W-30 > 5W-40 > 10W-40 > 0W-20 > остальные
+const VISCOSITY_PRIORITY = ["5W-30", "5W-40", "10W-40", "10W-30", "0W-30", "0W-40", "0W-20", "5W-50"];
+
+function pickViscosity(bestItems, altItems) {
+  // Собираем все доступные вязкости из best + alternative
+  const allViscosities = [];
+  for (const item of [...bestItems, ...altItems]) {
+    for (const v of (item.viscosity || [])) {
+      const norm = v.replace(/\s/g, "").toUpperCase();
+      if (!allViscosities.includes(norm)) allViscosities.push(norm);
+    }
+  }
+
+  if (!allViscosities.length) return null;
+
+  // Ищем по приоритету
+  for (const pref of VISCOSITY_PRIORITY) {
+    if (allViscosities.includes(pref)) return pref;
+  }
+
+  // Если нет ни одного из приоритетного списка — берём первую из best
+  return bestItems[0]?.viscosity?.[0] || allViscosities[0] || null;
+}
+
 // ── Собирает рекомендации из каталога по данным масла ──
 function buildRecommendations(oil, car) {
   try {
     const specs     = [];
     const oilData   = oil?.oil || {};
-    const bestItems = oilData?.best || [];
+    const bestItems = oilData?.best        || [];
+    const altItems  = oilData?.alternative || [];
 
     for (const item of bestItems) {
       specs.push(...(item.specs     || []));
       specs.push(...(item.viscosity || []));
     }
 
-    const viscosity    = bestItems[0]?.viscosity?.[0] || null;
-    const engineVolume = car?.engine?.volume           || null;
+    // БАГ 2 FIX: oil.volume — это объём масла для ТО (литры заливки),
+    // car.engine.volume — рабочий объём двигателя. Используем правильный.
+    const oilVolume = oil?.volume || null;
 
-    return matchOil({ specs, volume: engineVolume, viscosity });
+    // БАГ 4 FIX: выбираем вязкость с учётом региональных предпочтений
+    const viscosity = pickViscosity(bestItems, altItems);
+
+    console.log(`[oil] viscosity chosen: ${viscosity} (oil volume: ${oilVolume}л)`);
+
+    return matchOil({ specs, volume: oilVolume, viscosity });
   } catch (e) {
     console.error("[oil] matchOil error:", e.message);
     return [];
