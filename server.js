@@ -101,7 +101,19 @@ async function fetchCarInfo(vin) {
 // ─────────────────────────────────────────────
 // VIN EXTRACTION (OCR через GPT)
 // ─────────────────────────────────────────────
-async function extractVINonce(filePath) {
+// Три промпта с разным подходом — повышают шанс распознавания
+const VIN_PROMPTS = [
+  // Попытка 1: прямой и строгий
+  "Find the VIN number in this image. Reply with ONLY the 17-character VIN, no spaces, no explanation. If not found, reply NOT_FOUND.",
+
+  // Попытка 2: с подсказкой о символах и расположении
+  "Look carefully at this image for a VIN (Vehicle Identification Number). It is 17 characters long, contains only letters A-Z (except I, O, Q) and digits 0-9. It may be on a sticker, dashboard, door frame, or document. Reply with ONLY the 17-character VIN or NOT_FOUND.",
+
+  // Попытка 3: просим описать и извлечь
+  "This image may contain a VIN code. VIN is exactly 17 alphanumeric characters. Look for sequences like 'XTA', 'Z94', 'WBA', 'JN1', 'SHH' at the start — these are common VIN beginnings. Extract and return ONLY the 17-character VIN with no spaces. If you cannot find it, reply NOT_FOUND."
+];
+
+async function extractVINwithPrompt(filePath, promptText) {
   const base64 = fs.readFileSync(filePath).toString("base64");
 
   const response = await openai.responses.create({
@@ -111,7 +123,7 @@ async function extractVINonce(filePath) {
       content: [
         {
           type: "input_text",
-          text: "Найди VIN на изображении. Ответь строго 17 символами без пробелов, или NOT_FOUND если не видно."
+          text: promptText
         },
         {
           type:      "input_image",
@@ -125,12 +137,20 @@ async function extractVINonce(filePath) {
 }
 
 async function extractVIN(filePath) {
-  for (let attempt = 1; attempt <= 2; attempt++) {
-    console.log(`[VIN OCR] attempt ${attempt}`);
-    const vin = await extractVINonce(filePath);
-    console.log(`[VIN OCR] raw result: ${vin}`);
-    if (vin && vin.length === 17) return vin;
+  for (let attempt = 0; attempt < VIN_PROMPTS.length; attempt++) {
+    console.log(`[VIN OCR] attempt ${attempt + 1}/${VIN_PROMPTS.length}`);
+    try {
+      const vin = await extractVINwithPrompt(filePath, VIN_PROMPTS[attempt]);
+      console.log(`[VIN OCR] raw result: ${vin}`);
+      if (vin && vin.length === 17) {
+        console.log(`[VIN OCR] success on attempt ${attempt + 1}`);
+        return vin;
+      }
+    } catch (e) {
+      console.error(`[VIN OCR] attempt ${attempt + 1} error:`, e.message);
+    }
   }
+  console.log("[VIN OCR] all attempts failed");
   return null;
 }
 

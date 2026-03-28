@@ -600,8 +600,13 @@
       const file = fileInput.files[0];
       if (!file) return;
 
+      // Сбрасываем файл сразу — чтобы повторная загрузка всегда работала
+      fileInput.value = '';
+      fileName.textContent = '';
+      document.getElementById('lblFile').classList.remove('active');
+
       loading = true;
-      setLoading(carInfo, 'Распознаём VIN…');
+      setLoading(carInfo, 'Распознаём VIN… (попытка 1/3)');
       setLoading(liquids, 'Распознаём VIN…');
       hideRec();
       btnSend.disabled = true;
@@ -612,19 +617,21 @@
       try {
         const res  = await fetch('/upload/' + sessionId, { method: 'POST', body: fd });
         const data = await res.json();
+
         if (!data.vin) {
+          // Сервер уже сделал 3 попытки — всё равно не нашёл
+          loading = false; // сбрасываем — следующая загрузка должна работать
           setError(carInfo, 'VIN не найден на фото');
-          setError(liquids, 'Попробуйте сфотографировать чётче');
-          showToast('VIN не удалось распознать — попробуйте ещё раз');
-          fileInput.value = '';
-          fileName.textContent = '';
-          document.getElementById('lblFile').classList.remove('active');
+          setError(liquids, 'Попробуйте сделать фото чётче или ввести вручную');
+          showToast('VIN не удалось распознать после 3 попыток');
         }
+        // Если VIN найден — polling подхватит и загрузит данные
       } catch (e) {
+        loading = false;
         setError(carInfo, 'Ошибка отправки');
         setError(liquids, 'Ошибка отправки');
+        showToast('Ошибка соединения с сервером');
       } finally {
-        loading = false;
         btnSend.disabled = false;
       }
     }
@@ -800,7 +807,7 @@
             '</div>' +
           '</div>' +
           '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">' +
-            '<img class="oil-card-logo" src="' + brandLogo(r.brand) + '" alt="' + esc(r.brand) + '" onerror="this.src='/logo/no.webp'">' +
+            '<img class="oil-card-logo" src="' + brandLogo(r.brand) + '" alt="' + esc(r.brand) + '" onerror="this.src=\'/logo/no.webp\'">' +
             '<div class="oil-card-price">' + formatPrice(r.price) + ' <span>₽</span></div>' +
           '</div>' +
         '</div>' +
