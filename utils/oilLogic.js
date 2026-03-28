@@ -22,18 +22,16 @@ function pickViscosity(bestItems, altItems) {
   return all[0] || null;
 }
 
-// carEngineVolume — реальный объём двигателя из UPEC API (например 1.6л)
-// Используем его для подбора правильного размера канистры
-// НИКОГДА не берём volume из ответа GPT — он возвращает объём заправки масла (3.8л),
-// а не объём двигателя, и это разные вещи для логики подбора канистры
-function buildRecommendations(oil, prefs = {}, carEngineVolume = null) {
+// fillVolume = заправочный объём масла в литрах (3.8л для Haval Jolion)
+// Это НЕ рабочий объём двигателя (1.5л) — берётся из парсера или GPT
+function buildRecommendations(oil, prefs = {}, fillVolume = null) {
   try {
     const oilData   = oil?.oil || {};
     const bestItems = oilData?.best        || [];
     const altItems  = oilData?.alternative || [];
 
-    const viscosity    = pickViscosity(bestItems, altItems);
-    const workingVisc  = viscosity ? viscosity.replace(/\s/g, "").toUpperCase() : null;
+    const viscosity   = pickViscosity(bestItems, altItems);
+    const workingVisc = viscosity ? viscosity.replace(/\s/g, "").toUpperCase() : null;
 
     const matchedBlock = workingVisc
       ? bestItems.find(item =>
@@ -48,10 +46,11 @@ function buildRecommendations(oil, prefs = {}, carEngineVolume = null) {
       specs.push(...(targetBlock.viscosity || []));
     }
 
-    // Приоритет объёма: реальный объём двигателя из UPEC > oil.volume > null
-    const oilVolume = carEngineVolume || oil?.volume || null;
+    // fillVolume — заправочный объём (3.8л) → используем для подбора канистры нужного размера
+    // Если нет — берём из oil.volume (тот же заправочный, записанный в объект)
+    const oilVolume = fillVolume || oil?.volume || null;
 
-    console.log(`[buildRecommendations] carEngineVolume=${carEngineVolume} oil.volume=${oil?.volume} → using=${oilVolume}`);
+    console.log(`[buildRecommendations] fillVolume=${fillVolume} oil.volume=${oil?.volume} → using=${oilVolume}`);
     return matchOil({ specs, volume: oilVolume, viscosity, prefs });
   } catch (e) {
     console.error("[oil] matchOil error:", e.message);
@@ -95,9 +94,12 @@ ${data.slice(0, 15000)}
 
 Найди данные для двигателя: ${car.engine.code}
 
+volume — это заправочный объём масла в двигатель в литрах (НЕ рабочий объём двигателя).
+
 Верни строго JSON без markdown:
 {
   "found": true,
+  "volume": 3.8,
   "best": [{ "specs": ["ACEA A3", "RN 0710"], "viscosity": ["5W-30"] }],
   "alternative": [{ "specs": [], "viscosity": ["5W-40"] }]
 }
@@ -122,9 +124,13 @@ async function fallbackGlobal(car) {
 Ты автоэксперт по моторным маслам.
 Автомобиль: ${car.brand} ${car.model} ${car.year}, двигатель ${car.engine.code} ${car.engine.volume}л ${car.engine.type}, ${car.power_hp} л.с.
 
-Подбери моторное масло. Верни строго JSON без markdown:
+Подбери моторное масло. 
+volume — это заправочный объём масла в двигатель в литрах (НЕ рабочий объём двигателя ${car.engine.volume}л).
+
+Верни строго JSON без markdown:
 {
   "found": true,
+  "volume": 3.8,
   "best": [{ "specs": ["ACEA A3/B4", "VW 502.00"], "viscosity": ["5W-30"] }],
   "alternative": [{ "specs": ["ACEA A3/B4"], "viscosity": ["5W-40"] }]
 }
