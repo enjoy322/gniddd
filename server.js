@@ -1,5 +1,4 @@
 "use strict";
-const { getOriginalFilters } = require("./utils/getFilters");
 const express = require("express");
 const multer  = require("multer");
 const fs      = require("fs");
@@ -10,6 +9,7 @@ const { parseEngineBlocks, findEngineBlock } = require("./utils/parseOil");
 const { extractVIN, normalizeVIN }           = require("./utils/ocr");
 const { buildRecommendations, resolveUrl, fallbackFromPage, fallbackGlobal } = require("./utils/oilLogic");
 const { findFilters }                        = require("./utils/parseFilters");
+const { getOriginalFilters }                 = require("./utils/getFilters");
 
 const app = express();
 app.use(express.json());
@@ -116,11 +116,14 @@ app.get("/oil/:vin", async (req, res) => {
     try { car = await fetchCarInfo(req.params.vin); }
     catch (e) {
       if (e.name === "CarNotFoundError")
-        return res.json({ car: null, url: null, source: "car_not_found", oil: null, oil_source: null, recommendations: [], filters: null });
+        return res.json({
+          car: null, url: null, source: "car_not_found",
+          oil: null, oil_gpt: null,
+          recommendations: [], filters: null
+        });
       throw e;
     }
 
-    // Читаем пользовательские предпочтения из query
     const prefs = {};
     if (req.query.viscosity) prefs.viscosity = req.query.viscosity;
     if (req.query.brand)     prefs.brand     = req.query.brand;
@@ -128,116 +131,102 @@ app.get("/oil/:vin", async (req, res) => {
     const tree = require("./tree.json");
     console.log(`[oil] ${car.brand} ${car.model} ${car.year} engine=${car.engine.code}`);
 
+    // Реальный объём двигателя из UPEC API
+    // ВАЖНО: никогда не берём volume из ответа GPT — он путает объём двигателя с объёмом заправки
+    const engineVolume = car.engine?.volume || null;
+
     const filtersPromise = getOriginalFilters(car);
 
     const url = await resolveUrl(car, tree);
 
+    // ── Нет URL в дереве — только GPT ────────────────────────────────────────
     if (!url) {
-      console.log("[oil] no url → fallbackGlobal");
-      const gpt = await fallbackGlobal(car);
-      const oil = gpt?.found
-        ? { volume: gpt.volume || null, oil: { best: gpt.best || [], alternative: gpt.alternative || [] } }
+      console.log("[oil] no url → gpt only");
+      const [gptResult, filters] = await Promise.all([
+        fallbackGlobal(car),
+        filtersPromise
+      ]);
+
+      const oilGpt = gptResult?.found
+        ? { volume: engineVolume, oil: { best: gptResult.best || [], alternative: gptResult.alternative || [] } }
         : null;
-      const filters = await filtersPromise;
+
       return res.json({
         car, url: null,
-        source: gpt?.found ? "gpt_global" : "not_found",
-        oil,
-        oil_source: null,   // нет данных парсера — нет источника
-        recommendations: buildRecommendations(oil, prefs),
+        source: gptResult?.found ? "gpt_global" : "not_found",
+        oil: null,       // левый блок «Источник» — нет данных
+        oil_gpt: oilGpt, // правый блок «ИИ»
+        recommendations: buildRecommendations(oilGpt, prefs, engineVolume),
         filters
       });
-      // После каждого fallback добавь:
-console.log("[DEBUG oil volume]", {
-  source: "gpt_global",           // или gpt_html, parsed
-  gpt_volume: gptGlobal.volume,   // что GPT вернул
-  car_volume: car.engine.volume,  // что пришло из UPEC API
-  gpt_best: JSON.stringify(gptGlobal.best),
-  gpt_alt:  JSON.stringify(gptGlobal.alternative),
-});
     }
 
+    // ── URL найден → парсер + GPT параллельно ────────────────────────────────
     console.log(`[oil] parsing ${url}`);
-    const blocks = await parseEngineBlocks(url);
+
+    const [blocks, gptResult, filters] = await Promise.all([
+      parseEngineBlocks(url),
+      fallbackGlobal(car),
+      filtersPromise
+    ]);
+
     const engine = findEngineBlock(blocks, car);
 
+    // Правый блок «ИИ» — всегда из fallbackGlobal
+    const oilGpt = gptResult?.found
+      ? { volume: engineVolume, oil: { best: gptResult.best || [], alternative: gptResult.alternative || [] } }
+      : null;
+
+    // ── Парсер нашёл двигатель ────────────────────────────────────────────────
     if (engine) {
-      console.log("[oil] found via parser");
-      const filters = await filtersPromise;
-      // source=parsed: oil И oil_source одинаковые — парсер нашёл всё сам
+      console.log(`[oil] source=parsed, site_volume=${engine.volume}, using engineVolume=${engineVolume}`);
+
+      const oilParsed = {
+        volume: engineVolume, // реальный объём двигателя, НЕ engine.volume с сайта
+        oil: { best: engine.oil.best, alternative: engine.oil.alternative }
+      };
+
       return res.json({
         car, url,
         source: "parsed",
-        oil: engine,
-        oil_source: engine,   // показываем данные парсера в правой колонке
-        recommendations: buildRecommendations(engine, prefs),
+        oil: oilParsed,   // левый блок «Источник» = парсер
+        oil_gpt: oilGpt,  // правый блок «ИИ» = GPT
+        recommendations: buildRecommendations(oilParsed, prefs, engineVolume),
         filters
       });
-      // После каждого fallback добавь:
-console.log("[DEBUG oil volume]", {
-  source: "gpt_global",           // или gpt_html, parsed
-  gpt_volume: gptGlobal.volume,   // что GPT вернул
-  car_volume: car.engine.volume,  // что пришло из UPEC API
-  gpt_best: JSON.stringify(gptGlobal.best),
-  gpt_alt:  JSON.stringify(gptGlobal.alternative),
-});
     }
 
+    // ── Парсер не нашёл → GPT читает HTML страницы ───────────────────────────
     console.log("[oil] engine not found → fallbackFromPage");
     const gptPage = await fallbackFromPage(url, car);
+
     if (gptPage?.found) {
-      const oil = { volume: gptPage.volume || null, oil: { best: gptPage.best || [], alternative: gptPage.alternative || [] } };
-      const filters = await filtersPromise;
-      // source=gpt_html: GPT читал страницу парсера — oil_source = сырые данные страницы
+      console.log(`[oil] source=gpt_html, gptPage.volume=${gptPage.volume}, using engineVolume=${engineVolume}`);
+
+      const oilPage = {
+        volume: engineVolume, // НЕ gptPage.volume
+        oil: { best: gptPage.best || [], alternative: gptPage.alternative || [] }
+      };
+
       return res.json({
         car, url,
         source: "gpt_html",
-        oil,
-        oil_source: null,   // GPT обработал HTML — отдельного "источника" нет
-        recommendations: buildRecommendations(oil, prefs),
-        filters
-        
-      })
-      ;// После каждого fallback добавь:
-console.log("[DEBUG oil volume]", {
-  source: "gpt_global",           // или gpt_html, parsed
-  gpt_volume: gptGlobal.volume,   // что GPT вернул
-  car_volume: car.engine.volume,  // что пришло из UPEC API
-  gpt_best: JSON.stringify(gptGlobal.best),
-  gpt_alt:  JSON.stringify(gptGlobal.alternative),
-});
-    }
-
-    console.log("[oil] page fallback failed → fallbackGlobal");
-    const gptGlobal = await fallbackGlobal(car);
-    if (gptGlobal?.found) {
-      const oil = { volume: gptGlobal.volume || null, oil: { best: gptGlobal.best || [], alternative: gptGlobal.alternative || [] } };
-      const filters = await filtersPromise;
-      return res.json({
-        car, url,
-        source: "gpt_global",
-        oil,
-        oil_source: null,
-        recommendations: buildRecommendations(oil, prefs),
+        oil: oilPage,     // левый блок «Источник» = GPT читал страницу источника
+        oil_gpt: oilGpt,  // правый блок «ИИ» = GPT global
+        recommendations: buildRecommendations(oilPage, prefs, engineVolume),
         filters
       });
-      // После каждого fallback добавь:
-console.log("[DEBUG oil volume]", {
-  source: "gpt_global",           // или gpt_html, parsed
-  gpt_volume: gptGlobal.volume,   // что GPT вернул
-  car_volume: car.engine.volume,  // что пришло из UPEC API
-  gpt_best: JSON.stringify(gptGlobal.best),
-  gpt_alt:  JSON.stringify(gptGlobal.alternative),
-});
     }
 
-    const filters = await filtersPromise;
-    res.json({
+    // ── Всё упало → только GPT global ────────────────────────────────────────
+    console.log("[oil] source=gpt_global only");
+
+    return res.json({
       car, url,
-      source: "not_found",
-      oil: null,
-      oil_source: null,
-      recommendations: [],
+      source: gptResult?.found ? "gpt_global" : "not_found",
+      oil: null,        // левый блок «Источник» — нет данных
+      oil_gpt: oilGpt,  // правый блок «ИИ»
+      recommendations: buildRecommendations(oilGpt, prefs, engineVolume),
       filters
     });
 
