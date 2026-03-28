@@ -25,8 +25,6 @@ const VISCOSITY_PRIORITY = ["5W-30","5W-40","10W-40","10W-30","0W-30","0W-40","0
 
 // ─────────────────────────────────────────────────────────────
 // ОБЪЁМ КАНИСТРЫ
-// Возвращаем минимальный стандартный объём >= oilVolume
-// (4л для заливки 3.6л — потому что 4 >= 3.6)
 // ─────────────────────────────────────────────────────────────
 function pickCanisterVolume(oilVolume) {
   if (!oilVolume) return null;
@@ -56,6 +54,30 @@ function splitSpecs(raw) {
 }
 
 function clean(v) { return (v || "").trim(); }
+
+// ─────────────────────────────────────────────────────────────
+// ФИХ 1: ТОЧНОЕ СОВПАДЕНИЕ ДОПУСКОВ
+// Убираем опасный includes() — он матчил A3 внутри A3/B4
+// и GF-6 внутри GF-4 (подстрока в обратную сторону).
+// Новая логика:
+//   - точное совпадение — всегда OK
+//   - ILSAC GF-N: кандидат с номером >= требуемого — OK (обратная совместимость)
+//   - всё остальное — только точное совпадение
+// ─────────────────────────────────────────────────────────────
+function isSpecCompatible(required, candidate) {
+  if (required === candidate) return true;
+
+  // ILSAC GF-N: GF-5 и GF-6 покрывают GF-4 (обратно совместимы вверх)
+  const reqGF  = required.match(/^ILSACGF-(\d+)$/);
+  const candGF = candidate.match(/^ILSACGF-(\d+)$/);
+  if (reqGF && candGF) {
+    return parseInt(candGF[1]) >= parseInt(reqGF[1]);
+  }
+
+  // Всё остальное — только точное совпадение
+  // ACEA A5 ≠ ACEA A3/B4, ACEA A5 ≠ ACEA A5/B5 — строго
+  return false;
+}
 
 // ─────────────────────────────────────────────────────────────
 // MATCHOIL — основная функция подбора
@@ -93,12 +115,31 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
       return null;
     }
 
+    // ── ФИХ 2: ФИЛЬТР ПОЛУСИНТЕТИКИ И МИНЕРАЛКИ ──────────────
+    // Синтетика — единственный тип для современных двигателей.
+    // Если клиент явно не просил полусинтетику через prefs — убираем.
+    const itemOilType = (item.oil_type || "").toLowerCase();
+    const clientWantsNonSynth = !!(
+      prefs?.oilType && !prefs.oilType.toLowerCase().includes("синт")
+    );
+    if (!clientWantsNonSynth) {
+      if (
+        itemOilType.includes("полусинт") ||
+        itemOilType.includes("минерал") ||
+        itemOilType === "п/синт" ||
+        itemOilType === "п/синтетическое"
+      ) {
+        return null;
+      }
+    }
+    // ── конец фикса 2
+
     let score = 0;
 
     // Вязкость совпала
     if (workingViscosity && itemViscosity === workingViscosity) score += 50;
 
-    // Совпадение допусков
+    // ── ФИХ 1: ТОЧНЫЙ МАТЧИНГ ДОПУСКОВ ───────────────────────
     const itemSpecs = (item.all_specs || []).map(s => normalizeSpec(s));
 
     let oemMatches  = 0;
@@ -107,7 +148,9 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
 
     for (const s of normalizedSpecs) {
       if (!s) continue;
-      const matched = itemSpecs.some(is => is.includes(s) || s.includes(is));
+
+      // Используем isSpecCompatible вместо опасного includes()
+      const matched = itemSpecs.some(is => isSpecCompatible(s, is));
       if (!matched) continue;
 
       if (/^[A-Z]{2}\d{4}$|^\d{3}\.\d{2}$|RN|MB|BMW|VW|GM/.test(s)) {
@@ -125,21 +168,21 @@ function matchOil({ specs = [], volume = null, viscosity = null, prefs = {} } = 
     score += aceaMatches * 40;
     score += apiMatches  * 30;
 
+    // ── ФИХ 3: УВЕЛИЧЕННЫЙ ШТРАФ ЗА ПОЛНЫЙ ПРОМАХ ───────────
+    // Было -50 — бренд-бонус AREOL (+60) его перекрывал,
+    // и AREOL с A3/B4 лез на 2-ю позицию вместо масел с A5.
+    // Теперь -300 — никакой бренд-бонус не перекроет несоответствие.
     if (normalizedSpecs.length > 0 && (oemMatches + aceaMatches + apiMatches) === 0) {
-      score -= 50;
+      score -= 300;
     }
+    // ── конец фикса 3
 
-    // ── ФИКС БАГ 2а: объём ──────────────────────────────────────
-    // Старая логика давала +10 за канистру БОЛЬШЕ нужной — это неверно,
-    // клиент берёт лишнее масло и переплачивает.
-    // Новая: точное совпадение +40, больше нужного -10 (не критично),
-    // меньше нужного -30 (масла не хватит — худший вариант).
+    // Объём канистры
     if (targetVolume && item.volume != null) {
-      if (item.volume === targetVolume)      score += 40;  // точное попадание
-      else if (item.volume > targetVolume)   score -= 10;  // чуть больше — допустимо
-      else                                   score -= 30;  // меньше — масла не хватит
+      if (item.volume === targetVolume)      score += 40;
+      else if (item.volume > targetVolume)   score -= 10;
+      else                                   score -= 30;
     }
-    // ── конец фикса
 
     // Приоритетный бренд клиента
     const itemBrand = (item.brand || "").toUpperCase();
