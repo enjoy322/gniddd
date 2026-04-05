@@ -363,8 +363,35 @@ function matchOil({ specs = [], aiSpecs = [], volume = null, viscosity = null, p
   const areolPool = acCatalog.filter(i => i.brand === "AREOL" && (i.stock || 0) > 0);
   const commaPool = acCatalog.filter(i => i.brand === "COMMA" && (i.stock || 0) > 0);
 
-  const areolScored = scoreCatalog(areolPool, true);
-  const commaScored = scoreCatalog(commaPool, true);
+  let areolScored = scoreCatalog(areolPool, true);
+  let commaScored = scoreCatalog(commaPool, true);
+
+  // ── Fallback: если вязкость отфильтровала весь AC пул — ищем без вязкости ──
+  // (например, требуется 0W-20, а в AC каталоге только 5W-30/5W-40)
+  if (!areolScored.length && workVisc) {
+    const savedVisc = workVisc; // eslint-disable-line no-unused-vars
+    const scoreNoVisc = (pool) => {
+      const result = [];
+      for (const raw of pool) {
+        let allSpecs = enrichFromDescription(raw);
+        const { addSpecs, excluded } = applyOverride(raw.article, allSpecs, reqSpecs);
+        if (excluded) continue;
+        if (addSpecs.length) allSpecs = [...allSpecs, ...addSpecs];
+        const ot = (raw.oil_type || "").toLowerCase();
+        if (ot.includes("полусинт") || ot.includes("минерал")) continue;
+        if (raw.volume == null || raw.volume < 2) continue;
+        if (target && Math.abs(raw.volume - target) > 1.5) continue;
+        const s = scoreItem(raw, reqSpecs, hasReqOem, null, target, allSpecs);
+        if (!s) continue;
+        result.push({ ...raw, all_specs: allSpecs, _score: s.score - 20, _matchCnt: s.matchCount, _oemMatch: s.oemMatch, _viscWarn: `вязкость ${raw.viscosity} (рекомендована ${workVisc})` });
+      }
+      result.sort((a, b) => b._score - a._score);
+      return result;
+    };
+    areolScored = scoreNoVisc(areolPool);
+    commaScored = scoreNoVisc(commaPool);
+    console.log(`[matchOil] viscosity fallback: areol=${areolScored.length} comma=${commaScored.length}`);
+  }
 
   // ── Прочие бренды из основного каталога ───────────────────────────────────
   const otherPool = catalog.filter(i => {
@@ -402,11 +429,11 @@ function matchOil({ specs = [], aiSpecs = [], volume = null, viscosity = null, p
   ).join(" | ")}`);
 
   return finalRaw.map(item => {
-    let warning = null;
+    let warning = item._viscWarn || null;
     if (clientVisc && autoVisc && clientVisc !== autoVisc)
       warning = "вязкость не рекомендована производителем";
     if (hasReqOem && item._oemMatch === 0)
-      warning = "требует перепроверки допусков";
+      warning = warning || "требует перепроверки допусков";
     return formatResult(item, warning);
   });
 }
