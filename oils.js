@@ -5,7 +5,7 @@ const JSZip = require("jszip");
 const { DOMParser } = require("@xmldom/xmldom");
 
 const CATALOG_PATH    = path.join(__dirname, "oil-catalog.json");
-const OVERRIDE_PATH   = path.join(__dirname, "brand-specs-override.json");
+const OVERRIDE_PATH   = path.join(__dirname, "override.json");
 const AC_CATALOG_PATH = path.join(__dirname, "areol-comma-specs.json");
 
 /* ══════════════════════════════════════════════════════════════
@@ -279,7 +279,8 @@ function scoreItem(raw, reqSpecs, hasReqOem, workVisc, target, allSpecsArr) {
   const ot = (raw.oil_type || "").toLowerCase();
   if (ot.includes("полусинт") || ot.includes("минерал")) return null;
   if (raw.volume == null || raw.volume < 2) return null;
-  if (target && Math.abs(raw.volume - target) > 0.5) return null;
+  // Допуск ±1.5л: 4L и 5L обе подходят для любого fill_volume ≤ 4.3л
+  if (target && Math.abs(raw.volume - target) > 1.5) return null;
 
   let score = 0;
   if (workVisc && iv === workVisc) score += 30;
@@ -356,12 +357,14 @@ function matchOil({ specs = [], aiSpecs = [], volume = null, viscosity = null, p
     return result;
   }
 
-  // ── Подбираем AREOL из специального каталога ──────────────────────────────
+  // ── Подбираем AREOL/COMMA из специального каталога ───────────────────────
+  // useOverride: true — чтобы override.json добавлял RN0700/RN0710 и исключал
+  // неподходящие масла (oem_exclude_for)
   const areolPool = acCatalog.filter(i => i.brand === "AREOL" && (i.stock || 0) > 0);
   const commaPool = acCatalog.filter(i => i.brand === "COMMA" && (i.stock || 0) > 0);
 
-  const areolScored = scoreCatalog(areolPool, false);
-  const commaScored = scoreCatalog(commaPool, false);
+  const areolScored = scoreCatalog(areolPool, true);
+  const commaScored = scoreCatalog(commaPool, true);
 
   // ── Прочие бренды из основного каталога ───────────────────────────────────
   const otherPool = catalog.filter(i => {

@@ -564,6 +564,7 @@
     <div class="rec-hd">
       <span class="rec-hd-ico">🔩</span>
       <span class="rec-hd-ttl">Оригинальные артикулы для ТО</span>
+      <span id="filterBreadcrumb"></span>
     </div>
     <div class="filter-showcase" id="filterGrid"></div>
   </div>
@@ -779,7 +780,7 @@
         if (!oilSrc && !oilGpt) {
           liquids.innerHTML = emptyHtml('🛢️', 'Нет данных по маслу');
           renderRec(recs);
-          renderFilters(data.filters);
+          renderFilters(data.filters, data.breadcrumb, data.url);
           return;
         }
 
@@ -833,21 +834,16 @@
             '</div>' +
           '</div>' +
 
-          '<div class="source-row">' +
-          (data.breadcrumb
-            ? '<span class="breadcrumb"><span class="breadcrumb-ico">📍</span>' + esc(data.breadcrumb) + '</span>'
-            : '<span></span>') +
           (sourceUrl
-            ? '<a href="' + sourceUrl + '" target="_blank" rel="noopener noreferrer" class="source-link">' +
+            ? '<div class="source-row"><a href="' + sourceUrl + '" target="_blank" rel="noopener noreferrer" class="source-link">' +
               '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
               '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>' +
               '<polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
-              'источник</a>'
-            : '') +
-        '</div>';
+              'источник</a></div>'
+            : '');
 
         renderRec(recs);
-        renderFilters(data.filters);
+        renderFilters(data.filters, data.breadcrumb, data.url);
 
       } catch (e) {
         if (localVin !== currentVin) return;
@@ -855,9 +851,29 @@
       }
     }
 
-    function renderFilters(filters) {
+    function renderFilters(filters, breadcrumb, sourceUrl) {
       const sec  = document.getElementById('filterSection');
       const grid = document.getElementById('filterGrid');
+      const bc   = document.getElementById('filterBreadcrumb');
+
+      if (bc) {
+        if (breadcrumb) {
+          bc.innerHTML =
+            '<span class="breadcrumb" style="margin-left:8px">' +
+              '<span class="breadcrumb-ico">📍</span>' + esc(breadcrumb) +
+            '</span>' +
+            (sourceUrl
+              ? ' <a href="' + sourceUrl + '" target="_blank" rel="noopener noreferrer" class="source-link">' +
+                '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>' +
+                '<polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
+                'каталог</a>'
+              : '') ;
+        } else {
+          bc.innerHTML = '';
+        }
+      }
+
       if (!filters) { sec.classList.remove('visible'); return; }
 
       const GROUPS = [
