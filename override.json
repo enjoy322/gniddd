@@ -68,5 +68,22 @@
     "articles_match": ["XFFP4L"],
     "oem_add": ["Ford WSS-M2C913-A", "Ford WSS-M2C913-B", "Ford WSS-M2C913-C"],
     "oem_exclude_for": ["RN0700", "RN0710", "MB229.3", "MB229.5", "VW502.00", "VW504.00", "BMWLL01", "BMWLL04"]
+  },
+
+  "COMMA_GML_A3B4": {
+    "articles_match": ["GML4L", "GML5L", "XFLL4L", "XFLL5L"],
+    "oem_add": ["Renault RN0700", "RN0700"]
+  },
+  "COMMA_SYN_A3B4": {
+    "articles_match": ["SYN4L", "SYN5L", "XFG4L"],
+    "oem_add": ["Renault RN0700", "RN0700"]
+  },
+  "COMMA_DPD_C3_DIESEL": {
+    "articles_match": ["DPD4L", "DPD5L"],
+    "oem_add": ["Renault RN0710", "RN0710"]
+  },
+  "COMMA_SYZ_C3_VAG": {
+    "articles_match": ["SYZ4L", "SYZ5L"],
+    "oem_exclude_for": ["RN0700", "RN0710"]
   }
 }
