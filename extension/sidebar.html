@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VINOIL</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:      #f3f4f6;
+      --surface: #ffffff;
+      --surface2:#f0f0ee;
+      --border:  #e2e0dc;
+      --border2: #cecbc5;
+      --accent:  #111111;
+      --text:    #111111;
+      --muted:   #6b7280;
+      --soft:    #9ca3af;
+      --green:   #16a34a;
+      --blue:    #2563eb;
+      --radius:  8px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Inter', -apple-system, sans-serif;
+      font-size: 13px; line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    .header {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 10px 14px; display: flex; align-items: center; gap: 8px;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .brand { font-size: 15px; font-weight: 700; }
+    .server-url {
+      margin-left: auto; font-size: 11px; color: var(--soft);
+      cursor: pointer; text-decoration: underline dotted;
+    }
+
+    .input-area {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 10px 14px; display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .vin-group {
+      display: flex; flex: 1; border: 1px solid var(--border2);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    .vin-group:focus-within { border-color: var(--accent); }
+    #vinInput {
+      border: none; outline: none; background: transparent;
+      font-family: 'Inter', monospace; font-size: 13px; font-weight: 600;
+      letter-spacing: 1px; padding: 8px 10px; flex: 1; min-width: 0;
+      text-transform: uppercase;
+    }
+    #vinInput::placeholder { font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--soft); }
+    .btn-ok {
+      border: none; background: var(--accent); color: #fff;
+      padding: 0 14px; font-family: 'Inter', sans-serif;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      transition: opacity .15s;
+    }
+    .btn-ok:hover { opacity: .8; }
+    .btn-upload {
+      border: 1px solid var(--border2); background: var(--surface2);
+      border-radius: var(--radius); padding: 7px 12px;
+      font-size: 12px; font-weight: 600; color: var(--muted);
+      cursor: pointer; display: flex; align-items: center; gap: 5px;
+    }
+    .btn-upload:hover { border-color: var(--accent); color: var(--accent); }
+    #fileInput { display: none; }
+
+    .vin-badge {
+      padding: 8px 14px; background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: none; align-items: center; gap: 8px;
+    }
+    .vin-lbl { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--soft); }
+    .vin-val { font-size: 14px; font-weight: 700; letter-spacing: 2px; cursor: pointer; }
+    .vin-val:hover { color: var(--blue); }
+
+    .content { padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; }
+
+    .card { background: var(--surface); border-radius: 10px; border: 1px solid var(--border); overflow: hidden; }
+    .card-hd { padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 600; display: flex; gap: 6px; align-items: center; }
+    .card-bd { padding: 14px; }
+
+    .car-name { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+    .car-field { display: flex; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--border); }
+    .car-field:last-child { border-bottom: none; }
+    .cf-key { font-size: 12px; font-weight: 600; min-width: 76px; flex-shrink: 0; }
+    .cf-val { font-size: 12px; color: var(--muted); }
+
+    .bc-row {
+      font-size: 11px; color: var(--soft);
+      background: var(--surface2); border-radius: 5px;
+      padding: 4px 8px; display: flex; align-items: center; gap: 4px;
+      margin-bottom: 8px;
+    }
+    .bc-ico { opacity: .7; }
+
+    .oil-volume { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+    .oil-volume strong { color: var(--text); }
+    .oil-col-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--soft); margin: 8px 0 5px;
+    }
+    .oil-col-label.gpt { color: var(--blue); }
+    .oil-section-lbl { font-size: 10px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--soft); margin: 6px 0 4px; }
+    .oil-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; margin-bottom: 5px; }
+    .oil-row { display: flex; gap: 6px; margin-bottom: 4px; }
+    .oil-row:last-child { margin-bottom: 0; }
+    .oil-key { font-size: 11px; font-weight: 600; color: var(--muted); min-width: 58px; flex-shrink: 0; }
+    .badges { display: flex; flex-wrap: wrap; gap: 3px; }
+    .badge { background: var(--surface); border: 1px solid var(--border2); border-radius: 4px; padding: 1px 6px; font-size: 11px; }
+    .oil-empty { font-size: 12px; color: var(--soft); font-style: italic; }
+
+    .source-link {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; color: var(--soft); text-decoration: none;
+      margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);
+    }
+    .source-link:hover { color: var(--accent); text-decoration: underline; }
+
+    .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100px; gap: 6px; color: var(--soft); }
+    .empty-ico { font-size: 24px; opacity: .4; }
+    .loading-row { display: flex; align-items: center; gap: 8px; justify-content: center; min-height: 80px; color: var(--muted); }
+    .spinner { width: 14px; height: 14px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .ext-links { display: flex; gap: 6px; flex-wrap: wrap; }
+    .ext-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border2);
+      background: var(--surface2); font-size: 11px; font-weight: 600;
+      color: var(--muted); cursor: pointer; text-decoration: none;
+      transition: all .15s;
+    }
+    .ext-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .toast {
+      position: fixed; bottom: 16px; left: 50%;
+      transform: translateX(-50%) translateY(60px);
+      background: #1a1917; color: #fff;
+      font-size: 12px; font-weight: 500; padding: 8px 16px;
+      border-radius: 6px; z-index: 999; opacity: 0;
+      transition: transform .2s, opacity .2s; pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    .toggle-wrap { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+    .toggle-switch {
+      width: 30px; height: 16px; background: #d1d5db; border-radius: 8px;
+      cursor: pointer; transition: background .2s; position: relative;
+    }
+    .toggle-switch.on { background: var(--green); }
+    .toggle-knob {
+      position: absolute; top: 2px; left: 2px;
+      width: 12px; height: 12px; background: #fff; border-radius: 50%;
+      box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: left .2s;
+    }
+    .toggle-switch.on .toggle-knob { left: 16px; }
+    .toggle-lbl { font-size: 11px; font-weight: 600; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <span class="brand">VINOIL</span>
+  <div class="toggle-wrap">
+    <div class="toggle-switch" id="toggleGpt" title="Проверка ИИ">
+      <div class="toggle-knob"></div>
+    </div>
+    <span class="toggle-lbl" id="toggleLbl">ИИ</span>
+  </div>
+  <span class="server-url" id="serverUrl" title="Нажмите чтобы изменить">localhost:3000</span>
+</div>
+
+<div class="input-area">
+  <div class="vin-group">
+    <input id="vinInput" type="text" maxlength="20"
+      placeholder="VIN или госномер"
+      autocomplete="off" autocorrect="off" spellcheck="false" />
+    <button class="btn-ok" id="btnOk">ОК</button>
+  </div>
+  <label class="btn-upload" for="fileInput">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+      <circle cx="12" cy="13" r="4"/>
+    </svg>
+    Фото
+  </label>
+  <input type="file" id="fileInput" accept="image/*" />
+</div>
+
+<div class="vin-badge" id="vinBadge">
+  <span class="vin-lbl">VIN</span>
+  <span class="vin-val" id="vinDisplay"></span>
+  <div class="ext-links" id="extLinks" style="margin-left:auto"></div>
+</div>
+
+<div class="content">
+  <div class="card">
+    <div class="card-hd"><span>🚗</span> Автомобиль</div>
+    <div class="card-bd" id="carInfo">
+      <div class="empty"><div class="empty-ico">🔍</div><div>Введите VIN или госномер</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hd"><span>🛢️</span> Масло и жидкости</div>
+    <div class="card-bd" id="liquids">
+      <div class="empty"><div class="empty-ico">⚙️</div><div>Данные появятся после поиска</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let SERVER = 'http://localhost:3000';
+  let sessionId = null;
+  let currentVin = null;
+  let loading = false;
+  let gptCheckEnabled = false;
+
+  // Загружаем настройки из chrome.storage
+  chrome.storage.local.get(['server', 'session', 'gptCheck'], (data) => {
+    if (data.server) SERVER = data.server;
+    if (data.gptCheck !== undefined) gptCheckEnabled = data.gptCheck;
+    document.getElementById('serverUrl').textContent = SERVER.replace('http://', '');
+    updateToggleUI();
+    if (data.session) {
+      sessionId = data.session;
+      poll();
+    } else {
+      initSession();
+    }
+  });
+
+  // Изменить сервер
+  document.getElementById('serverUrl').addEventListener('click', () => {
+    const url = prompt('URL сервера:', SERVER);
+    if (url) {
+      SERVER = url.replace(/\/$/, '');
+      chrome.storage.local.set({ server: SERVER });
+      document.getElementById('serverUrl').textContent = SERVER.replace('http://', '');
+      initSession();
+    }
+  });
+
+  // Тумблер ИИ
+  document.getElementById('toggleGpt').addEventListener('click', () => {
+    gptCheckEnabled = !gptCheckEnabled;
+    chrome.storage.local.set({ gptCheck: gptCheckEnabled });
+    updateToggleUI();
+    if (currentVin) loadLiquids(currentVin);
+  });
+
+  function updateToggleUI() {
+    const el = document.getElementById('toggleGpt');
+    el.classList.toggle('on', gptCheckEnabled);
+    document.getElementById('toggleLbl').textContent = gptCheckEnabled ? 'ИИ ✓' : 'ИИ';
+  }
+
+  async function initSession() {
+    try {
+      const res  = await fetch(SERVER + '/new-session');
+      const data = await res.json();
+      sessionId  = data.session_id;
+      chrome.storage.local.set({ session: sessionId });
+    } catch (e) {
+      showToast('Сервер недоступен: ' + SERVER);
+    }
+  }
+
+  // Ввод
+  document.getElementById('vinInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendManual(); });
+  document.getElementById('btnOk').addEventListener('click', sendManual);
+  document.getElementById('fileInput').addEventListener('change', (e) => {
+    if (e.target.files[0]) uploadPhoto(e.target.files[0]);
+    e.target.value = '';
+  });
+
+  async function sendManual() {
+    const val = document.getElementById('vinInput').value.trim();
+    if (!val || !sessionId) return;
+    try {
+      const res  = await fetch(SERVER + '/manual/' + sessionId, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vin: val })
+      });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.error || 'Не найдено'); return; }
+      if (data.regnumber) showToast('Госномер → VIN: ' + data.vin, 3000);
+    } catch (e) { showToast('Ошибка соединения'); }
+  }
+
+  async function uploadPhoto(file) {
+    loading = true;
+    setLoading(document.getElementById('carInfo'), 'Распознаём VIN…');
+    const fd = new FormData(); fd.append('image', file);
+    try {
+      const res  = await fetch(SERVER + '/upload/' + sessionId, { method: 'POST', body: fd });
+      const data = await res.json();
+      loading = false;
+      if (!data.vin) showToast('VIN не удалось распознать');
+    } catch (e) { loading = false; showToast('Ошибка загрузки'); }
+  }
+
+  async function poll() {
+    if (!sessionId) return;
+    try {
+      const res  = await fetch(SERVER + '/data/' + sessionId);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!loading) {
+        const vin = data.vin || null;
+        const badge = document.getElementById('vinBadge');
+        badge.style.display = vin ? 'flex' : 'none';
+        if (vin) {
+          document.getElementById('vinDisplay').textContent = vin.toUpperCase();
+          document.getElementById('extLinks').innerHTML =
+            '<a class="ext-btn" href="https://etp.armtek.ru/catalogs/catalogs_original/getCatalogByParams/?ft=findByVIN&vin=' + vin + '" target="_blank">Армтек</a>';
+        }
+        if (vin && vin !== currentVin) {
+          currentVin = vin;
+          document.getElementById('vinInput').value = vin.toUpperCase();
+          loadCarInfo(vin);
+          loadLiquids(vin);
+        }
+      }
+    } catch (e) {}
+  }
+  setInterval(poll, 3000);
+
+  async function loadCarInfo(vin) {
+    setLoading(document.getElementById('carInfo'));
+    try {
+      const res  = await fetch(SERVER + '/car-info/' + vin);
+      const data = await res.json();
+      if (res.status === 404) { setError(document.getElementById('carInfo'), 'Автомобиль не найден'); return; }
+      renderCar(data);
+    } catch (e) { setError(document.getElementById('carInfo'), 'Ошибка загрузки'); }
+  }
+
+  function renderCar(d) {
+    const name = [d.brand, d.model].filter(Boolean).join(' ');
+    const fields = [
+      { k: 'Год',       v: d.year },
+      { k: 'Двигатель', v: d.engine ? d.engine.code + ' (' + d.engine.volume + 'л)' : null },
+      { k: 'Тип',       v: d.engine?.type },
+      { k: 'Мощность',  v: d.power_hp ? d.power_hp + ' л.с' : null },
+      { k: 'КПП',       v: d.transmission },
+      { k: 'Привод',    v: d.drive },
+    ].filter(f => f.v);
+    document.getElementById('carInfo').innerHTML =
+      (name ? '<div class="car-name">' + name + '</div>' : '') +
+      '<div>' + fields.map(f =>
+        '<div class="car-field"><span class="cf-key">' + f.k + ':</span><span class="cf-val">' + f.v + '</span></div>'
+      ).join('') + '</div>';
+  }
+
+  async function loadLiquids(vin) {
+    const localVin = vin;
+    setLoading(document.getElementById('liquids'), gptCheckEnabled ? 'Загружаем + проверка ИИ…' : 'Загружаем…');
+    try {
+      const p = new URLSearchParams({ gptCheck: gptCheckEnabled ? '1' : '0' });
+      const res  = await fetch(SERVER + '/oil/' + vin + '?' + p.toString());
+      const data = await res.json();
+      if (localVin !== currentVin) return;
+      if (data.source === 'car_not_found') { setError(document.getElementById('liquids'), 'Нет данных'); return; }
+      renderLiquids(data);
+    } catch (e) { if (localVin === currentVin) setError(document.getElementById('liquids'), 'Ошибка загрузки'); }
+  }
+
+  function renderLiquids(data) {
+    const el = document.getElementById('liquids');
+    const oilSrc = data.oil;
+    const oilGpt = data.oil_gpt;
+    const volume = oilSrc?.volume || oilGpt?.volume || null;
+    const bc     = data.breadcrumb || null;
+
+    if (!oilSrc && !oilGpt) { el.innerHTML = '<p class="oil-empty">Нет данных по маслу</p>'; return; }
+
+    function renderItems(arr) {
+      return (arr || []).map(item => {
+        const specs = item.specs || []; const visc = item.viscosity || [];
+        return '<div class="oil-item">' +
+          (specs.length ? '<div class="oil-row"><span class="oil-key">Допуски:</span><div class="badges">' +
+            specs.map(s => '<span class="badge">' + esc(s) + '</span>').join('') + '</div></div>' : '') +
+          (visc.length ? '<div class="oil-row"><span class="oil-key">Вязкость:</span><div class="badges">' +
+            visc.map(v => '<span class="badge">' + esc(v) + '</span>').join('') + '</div></div>' : '') +
+          '</div>';
+      }).join('');
+    }
+
+    function renderCol(oil, labelCls, labelText) {
+      if (!oil) return '';
+      const best = oil.oil?.best || []; const alt = oil.oil?.alternative || [];
+      if (!best.length && !alt.length) return '';
+      return '<div class="oil-col-label ' + labelCls + '">' + labelText + '</div>' +
+        (best.length ? '<div class="oil-section-lbl">Лучший выбор</div>' + renderItems(best) : '') +
+        (alt.length  ? '<div class="oil-section-lbl">Альтернатива</div>'  + renderItems(alt)  : '');
+    }
+
+    const srcLabel = data.source === 'parsed' ? '📄 Источник' : '📄 ИИ (страница)';
+
+    el.innerHTML =
+      (bc ? '<div class="bc-row"><span class="bc-ico">📍</span>' + esc(bc) + '</div>' : '') +
+      (volume ? '<div class="oil-volume">Объём: <strong>' + volume + ' л</strong></div>' : '') +
+      renderCol(oilSrc, 'src', srcLabel) +
+      renderCol(oilGpt, 'gpt', '🤖 По данным ИИ') +
+      (data.url ? '<a href="' + data.url + '" target="_blank" class="source-link">' +
+        '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+        '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>' +
+        '<polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
+        'источник</a>' : '');
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function setLoading(el, msg) { el.innerHTML = '<div class="loading-row"><div class="spinner"></div>' + (msg || 'Загрузка…') + '</div>'; }
+  function setError(el, msg) { el.innerHTML = '<div class="empty"><div class="empty-ico">⚠️</div><div>' + msg + '</div></div>'; }
+  function showToast(msg, dur=3000) {
+    const el = document.getElementById('toast');
+    el.textContent = msg; el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), dur);
+  }
+
+  document.getElementById('vinDisplay').addEventListener('click', () => {
+    const vin = document.getElementById('vinDisplay').textContent;
+    if (!vin) return;
+    navigator.clipboard.writeText(vin).then(() => showToast('VIN скопирован'));
+  });
+</script>
+</body>
+</html>

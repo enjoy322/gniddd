@@ -4,8 +4,9 @@ const path = require("path");
 const JSZip = require("jszip");
 const { DOMParser } = require("@xmldom/xmldom");
 
-const CATALOG_PATH  = path.join(__dirname, "oil-catalog.json");
-const OVERRIDE_PATH = path.join(__dirname, "brand-specs-override.json");
+const CATALOG_PATH    = path.join(__dirname, "oil-catalog.json");
+const OVERRIDE_PATH   = path.join(__dirname, "brand-specs-override.json");
+const AC_CATALOG_PATH = path.join(__dirname, "areol-comma-specs.json");
 
 /* ══════════════════════════════════════════════════════════════
    БРЕНДЫ
@@ -229,145 +230,175 @@ function specWeight(raw) {
 }
 
 /* ══════════════════════════════════════════════════════════════
-   MATCHOIL v3 FINAL
+   MATCHOIL v4 — гарантия AREOL + COMMA + прочий бренд
+   Принимает specs (из каталога) и aiSpecs (из ИИ) раздельно,
+   объединяет их с весовыми коэффициентами.
    ══════════════════════════════════════════════════════════════ */
-function matchOil({ specs = [], volume = null, viscosity = null, prefs = {}, limit = 6 } = {}) {
-  let catalog;
+
+/**
+ * Объединяет два массива допусков. sourceSpecs имеют вес 1.5×,
+ * aiSpecs — 1× (если уже есть в source, не дублируются).
+ */
+function mergeSpecsWeighted(sourceSpecs, aiSpecs) {
+  const srcNorm = new Set(sourceSpecs.map(norm));
+  const merged = [...sourceSpecs];
+  for (const s of aiSpecs) {
+    if (s && !isViscosity(s) && !srcNorm.has(norm(s))) {
+      merged.push(s);
+    }
+  }
+  return merged;
+}
+
+/**
+ * Загружает AREOL+COMMA каталог (с ручными допусками из xlsx).
+ */
+let _acCatalog = null;
+function loadAreolCommaCatalog() {
+  if (_acCatalog) return _acCatalog;
   try {
-    catalog = JSON.parse(fs.readFileSync(CATALOG_PATH, "utf-8"));
+    _acCatalog = JSON.parse(fs.readFileSync(AC_CATALOG_PATH, "utf-8"));
+    console.log(`[oils] areol-comma catalog: ${_acCatalog.length} items`);
   } catch (e) {
-    console.error("[oils] catalog not found:", e.message);
-    return [];
+    console.warn("[oils] areol-comma-specs.json not found, falling back to main catalog");
+    _acCatalog = [];
+  }
+  return _acCatalog;
+}
+
+/**
+ * Скоринг одного товара против набора требуемых допусков.
+ * Возвращает { score, matchCount, oemMatch }.
+ */
+function scoreItem(raw, reqSpecs, hasReqOem, workVisc, target, allSpecsArr) {
+  const itemSpecs  = allSpecsArr.map(norm);
+  const iv         = norm(raw.viscosity);
+
+  // Жёсткие фильтры
+  if (workVisc && iv && iv !== workVisc) return null;
+  const ot = (raw.oil_type || "").toLowerCase();
+  if (ot.includes("полусинт") || ot.includes("минерал")) return null;
+  if (raw.volume == null || raw.volume < 2) return null;
+  if (target && Math.abs(raw.volume - target) > 0.5) return null;
+
+  let score = 0;
+  if (workVisc && iv === workVisc) score += 30;
+
+  let matchCount = 0, oemMatch = 0, specScore = 0;
+  for (const req of reqSpecs) {
+    let bestC = 0;
+    for (const cand of itemSpecs) bestC = Math.max(bestC, specCompat(req, cand));
+    if (bestC > 0) {
+      matchCount++;
+      if (isOem(req)) oemMatch++;
+      specScore += bestC * specWeight(req);
+    }
   }
 
-  // Фильтруем вязкости из specs!
-  const reqSpecs  = specs.map(s => s.trim()).filter(s => s && !isViscosity(s)).map(norm);
-  const hasReqOem = reqSpecs.some(isOem);
-  const target    = pickCanisterVolume(volume);
+  if (reqSpecs.length > 0 && matchCount === 0) return null;
+  if (hasReqOem && oemMatch === 0) score -= 100;
+
+  score += specScore;
+  if (matchCount > 0 && reqSpecs.length > 0) score += (matchCount / reqSpecs.length) * 50;
+  score += oemMatch * 30;
+  if (raw.volume === target) score += 15;
+  score -= (raw.price || 0) / 50000;
+
+  return { score: Math.round(score * 100) / 100, matchCount, oemMatch };
+}
+
+/**
+ * Главная функция подбора масла.
+ * Всегда возвращает ровно 3 позиции: 1 AREOL + 1 COMMA + 1 прочий бренд.
+ *
+ * @param {string[]} specs     — допуски из каталога (источник, вес 1.5×)
+ * @param {string[]} aiSpecs   — допуски по данным ИИ (вес 1×)
+ * @param {number|null} volume — объём заливки
+ * @param {string|null} viscosity — рекомендованная вязкость
+ * @param {object} prefs       — { viscosity?, brand? } — пользовательские предпочтения
+ */
+function matchOil({ specs = [], aiSpecs = [], volume = null, viscosity = null, prefs = {} } = {}) {
+  let catalog;
+  try { catalog = JSON.parse(fs.readFileSync(CATALOG_PATH, "utf-8")); }
+  catch (e) { console.error("[oils] catalog not found:", e.message); return []; }
+
+  const acCatalog = loadAreolCommaCatalog();
+
+  // ── Объединяем допуски из двух источников ──────────────────────────────────
+  const sourceFilt = specs.filter(s => s && !isViscosity(s));
+  const aiFilt     = aiSpecs.filter(s => s && !isViscosity(s));
+  const reqSpecs   = mergeSpecsWeighted(sourceFilt, aiFilt).map(norm);
+  const hasReqOem  = reqSpecs.some(isOem);
+  const target     = pickCanisterVolume(volume);
 
   const clientVisc = prefs?.viscosity ? norm(prefs.viscosity) : null;
   const autoVisc   = viscosity ? norm(viscosity) : null;
   const workVisc   = clientVisc || autoVisc;
   const prefBrand  = prefs?.brand ? prefs.brand.toUpperCase().trim() : null;
 
-  console.log(`[matchOil] reqSpecs=[${reqSpecs.join(",")}] visc=${workVisc} vol=${volume}→${target}л hasOem=${hasReqOem}`);
+  console.log(`[matchOil] reqSpecs=[${reqSpecs.join(",")}] aiSpecs=[${aiFilt.map(norm).join(",")}] visc=${workVisc} vol=${volume}→${target}л`);
 
-  const scored = [];
-
-  for (const raw of catalog) {
-    // 1) Enrich from description
-    let allSpecs = enrichFromDescription(raw);
-
-    // 2) Override — добавляем OEM + проверяем exclude
-    const { addSpecs, excluded } = applyOverride(raw.article, allSpecs, reqSpecs);
-    if (excluded) continue;
-    if (addSpecs.length) allSpecs = [...allSpecs, ...addSpecs];
-
-    // 3) Фильтр вязкости
-    const iv = norm(raw.viscosity);
-    if (workVisc && iv && iv !== workVisc) continue;
-
-    // 4) Фильтр синтетика
-    const ot = (raw.oil_type || "").toLowerCase();
-    if (ot.includes("полусинт") || ot.includes("минерал") || ot === "п/синт" || ot === "п/синтетическое") {
-      if (!(prefs?.oilType && !prefs.oilType.toLowerCase().includes("синт"))) continue;
-    }
-
-    // 5) Фильтр объёма
-    if (raw.volume == null || raw.volume < 2) continue;
-    if (Math.abs(raw.volume - target) > 0.5) continue;
-
-    // ── СКОРИНГ ──
-    let score = 0;
-    if (workVisc && iv === workVisc) score += 30;
-
-    const itemSpecs = allSpecs.map(norm);
-    let matchCount = 0, oemMatch = 0, specScore = 0;
-
-    for (const req of reqSpecs) {
-      let bestC = 0;
-      for (const cand of itemSpecs) {
-        bestC = Math.max(bestC, specCompat(req, cand));
+  // ── Функция скоринга пула товаров ──────────────────────────────────────────
+  function scoreCatalog(pool, useOverride) {
+    const result = [];
+    for (const raw of pool) {
+      let allSpecs = enrichFromDescription(raw);
+      if (useOverride) {
+        const { addSpecs, excluded } = applyOverride(raw.article, allSpecs, reqSpecs);
+        if (excluded) continue;
+        if (addSpecs.length) allSpecs = [...allSpecs, ...addSpecs];
       }
-      if (bestC > 0) {
-        matchCount++;
-        if (isOem(req)) oemMatch++;
-        specScore += bestC * specWeight(req);
-      }
+      const s = scoreItem(raw, reqSpecs, hasReqOem, workVisc, target, allSpecs);
+      if (!s) continue;
+      result.push({ ...raw, all_specs: allSpecs, _score: s.score, _matchCnt: s.matchCount, _oemMatch: s.oemMatch });
     }
-
-    score += specScore;
-
-    // Ноль совпадений при наличии требований → отсев
-    if (reqSpecs.length > 0 && matchCount === 0) continue;
-
-    // Штраф за отсутствие OEM
-    if (hasReqOem && oemMatch === 0) score -= 100;
-
-    // Бонусы
-    if (matchCount > 0 && reqSpecs.length > 0) {
-      score += (matchCount / reqSpecs.length) * 50;
-    }
-    score += oemMatch * 30;
-    if (raw.volume === target) score += 15;
-
-    // Бренд
-    const ib = (raw.brand || "").toUpperCase().trim();
-    if (prefBrand && ib === prefBrand) score += 200;
-    if (TOP_BRANDS.includes(ib))      score += 60 - TOP_BRANDS.indexOf(ib) * 10;
-    else if (MID_BRANDS.includes(ib)) score += 25 - MID_BRANDS.indexOf(ib) * 5;
-
-    score -= (raw.price || 0) / 50000;
-
-    scored.push({
-      ...raw,
-      all_specs: allSpecs,
-      _score:     Math.round(score * 100) / 100,
-      _matchCnt:  matchCount,
-      _oemMatch:  oemMatch,
-    });
+    result.sort((a, b) => b._score - a._score);
+    return result;
   }
 
-  scored.sort((a, b) => b._score - a._score);
+  // ── Подбираем AREOL из специального каталога ──────────────────────────────
+  const areolPool = acCatalog.filter(i => i.brand === "AREOL" && (i.stock || 0) > 0);
+  const commaPool = acCatalog.filter(i => i.brand === "COMMA" && (i.stock || 0) > 0);
 
-  console.log(`[matchOil] ${scored.length} candidates (top5: ${scored.slice(0,5).map(r =>
-    `${r.brand}/${r.article} s=${r._score} m=${r._matchCnt} oem=${r._oemMatch}`).join(", ")})`);
+  const areolScored = scoreCatalog(areolPool, false);
+  const commaScored = scoreCatalog(commaPool, false);
 
-  // ── Витрина: 1 бренд = 1 карточка, каскад ──
-  const result = [], usedBrands = new Set();
+  // ── Прочие бренды из основного каталога ───────────────────────────────────
+  const otherPool = catalog.filter(i => {
+    const b = (i.brand || "").toUpperCase().trim();
+    return b !== "AREOL" && b !== "COMMA" && (i.stock || 0) > 0;
+  });
+  const otherScored = scoreCatalog(otherPool, true);
 
-  function pick(brands) {
-    for (const item of scored) {
-      if (result.length >= limit) return;
-      const b = (item.brand || "").toUpperCase().trim();
-      if (usedBrands.has(b)) continue;
-      if (brands && !brands.includes(b)) continue;
-      result.push(item);
-      usedBrands.add(b);
-    }
+  // ── Если пользователь выбрал бренд — приоритизировать его ─────────────────
+  let prefSlot = null;
+  if (prefBrand && prefBrand !== "AREOL" && prefBrand !== "COMMA") {
+    prefSlot = otherScored.find(i => (i.brand||"").toUpperCase() === prefBrand) || null;
   }
 
-  if (prefBrand) {
-    const p = scored.find(i => (i.brand||"").toUpperCase().trim() === prefBrand);
-    if (p) { result.push(p); usedBrands.add(prefBrand); }
-  }
+  // ── Финальная витрина ─────────────────────────────────────────────────────
+  // Слот 1: лучший AREOL (или предпочтительный, если пользователь выбрал AREOL)
+  const bestAreol = prefBrand === "AREOL"
+    ? (areolScored.find(i => i._score > 0) || areolScored[0])
+    : areolScored[0];
 
-  pick(TOP_BRANDS);
-  pick(MID_BRANDS);
-  pick(null);
+  // Слот 2: лучший COMMA
+  const bestComma = prefBrand === "COMMA"
+    ? (commaScored.find(i => i._score > 0) || commaScored[0])
+    : commaScored[0];
 
-  if (result.length < limit) {
-    for (const item of scored) {
-      if (result.length >= limit) break;
-      if (!result.find(r => r.article === item.article)) result.push(item);
-    }
-  }
+  // Слот 3: лучший прочий бренд (приоритет предпочтению пользователя)
+  const usedArticles = new Set([bestAreol?.article, bestComma?.article]);
+  const bestOther = prefSlot ||
+    otherScored.find(i => !usedArticles.has(i.article));
 
-  console.log(`[matchOil] FINAL ${result.length}: ${result.map(r =>
+  const finalRaw = [bestAreol, bestComma, bestOther].filter(Boolean);
+
+  console.log(`[matchOil] FINAL: ${finalRaw.map(r =>
     `${r.brand} ${r.article} s=${r._score} m=${r._matchCnt}/${reqSpecs.length} oem=${r._oemMatch}`
   ).join(" | ")}`);
 
-  return result.map(item => {
+  return finalRaw.map(item => {
     let warning = null;
     if (clientVisc && autoVisc && clientVisc !== autoVisc)
       warning = "вязкость не рекомендована производителем";

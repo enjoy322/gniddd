@@ -284,9 +284,17 @@
 
     .oil-empty-col { font-size: 12px; color: var(--soft); padding-top: 4px; font-style: italic; }
 
-    .source-row { display: flex; justify-content: flex-end; margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .source-row { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border); }
     .source-link { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--soft); text-decoration: none; transition: color .15s; }
     .source-link:hover { color: var(--accent); text-decoration: underline; }
+
+    .breadcrumb {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; color: var(--soft);
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 3px 10px;
+    }
+    .breadcrumb-ico { opacity: .7; }
 
     .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 180px; gap: 8px; color: var(--soft); }
     .empty-ico { font-size: 32px; opacity: .35; }
@@ -440,8 +448,8 @@
 
   <div class="input-bar">
     <div class="vin-group">
-      <input id="vinInput" type="text" maxlength="17"
-        placeholder="Введите VIN"
+      <input id="vinInput" type="text" maxlength="20"
+        placeholder="VIN или госномер"
         autocomplete="off" autocorrect="off" spellcheck="false" />
       <div class="vin-divider"></div>
       <button class="btn btn-ok" id="btnOk">ОК</button>
@@ -592,7 +600,7 @@
     const toggleGptLabel = document.getElementById('toggleGptLabel');
 
     // ── GPT check тумблер — localStorage ──
-    let gptCheckEnabled = true;
+    let gptCheckEnabled = false;
     try {
       const saved = localStorage.getItem('vinoil_gptCheck');
       if (saved !== null) gptCheckEnabled = saved === '1';
@@ -656,10 +664,17 @@
     });
 
     async function sendManual() {
-      const vin = vinInput.value.trim();
-      if (!vin) { vinInput.focus(); return; }
+      const val = vinInput.value.trim();
+      if (!val) { vinInput.focus(); return; }
       try {
-        await fetch('/manual/' + sessionId, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vin }) });
+        const res  = await fetch('/manual/' + sessionId, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vin: val }) });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Не найдено', 3000);
+          setError(carInfo, data.error || 'Не найдено');
+        } else if (data.regnumber) {
+          showToast('Госномер ' + data.regnumber + ' → VIN: ' + data.vin, 3500);
+        }
       } catch (e) { console.error('manual error', e); }
     }
 
@@ -818,13 +833,18 @@
             '</div>' +
           '</div>' +
 
+          '<div class="source-row">' +
+          (data.breadcrumb
+            ? '<span class="breadcrumb"><span class="breadcrumb-ico">📍</span>' + esc(data.breadcrumb) + '</span>'
+            : '<span></span>') +
           (sourceUrl
-            ? '<div class="source-row"><a href="' + sourceUrl + '" target="_blank" rel="noopener noreferrer" class="source-link">' +
+            ? '<a href="' + sourceUrl + '" target="_blank" rel="noopener noreferrer" class="source-link">' +
               '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
               '<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>' +
               '<polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
-              'источник</a></div>'
-            : '');
+              'источник</a>'
+            : '') +
+        '</div>';
 
         renderRec(recs);
         renderFilters(data.filters);

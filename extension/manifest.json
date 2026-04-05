@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "VINOIL",
+  "version": "1.0",
+  "description": "Подбор масла по VIN и госномеру",
+  "permissions": ["sidePanel", "storage"],
+  "host_permissions": ["http://localhost:3000/*"],
+  "side_panel": {
+    "default_path": "sidebar.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "VINOIL — открыть панель"
+  }
+}

@@ -99,33 +99,39 @@ ${oilsList}
 }
 
 /* ══════════════════════════════════════════════════════════════
-   buildRecommendations — собирает specs БЕЗ вязкости
+   collectSpecs — извлекает допуски из oil-объекта (без вязкости)
    ══════════════════════════════════════════════════════════════ */
-function buildRecommendations(oil, prefs = {}, fillVolume = null, limit = 6) {
-  try {
-    const oilData   = oil?.oil || {};
-    const bestItems = oilData?.best        || [];
-    const altItems  = oilData?.alternative || [];
-
-    // Выбираем вязкость
-    const viscosity = pickViscosity(bestItems, altItems);
-
-    // Собираем ВСЕ допуски из best + alternative (без вязкости!)
-    const specsSet = new Set();
-    for (const block of [...bestItems, ...altItems]) {
-      for (const s of (block.specs || [])) {
-        // Проверяем: это НЕ вязкость
-        if (!/^\d+W-?\d+$/i.test(s.replace(/\s/g, ""))) {
-          specsSet.add(s);
-        }
-      }
+function collectSpecs(oil) {
+  const oilData = oil?.oil || {};
+  const all = [...(oilData.best || []), ...(oilData.alternative || [])];
+  const set = new Set();
+  for (const block of all) {
+    for (const s of (block.specs || [])) {
+      if (!/^\d+W-?\d+$/i.test(s.replace(/\s/g, ""))) set.add(s);
     }
-    const specs = Array.from(specsSet);
+  }
+  return Array.from(set);
+}
 
-    const oilVolume = fillVolume || oil?.volume || null;
+/* ══════════════════════════════════════════════════════════════
+   buildRecommendations — теперь принимает primaryOil + fallbackOil (ИИ)
+   primaryOil  = данные из каталога (источник, вес 1.5×)
+   fallbackOil = данные ИИ (вес 1×, добавляются только если нет в primary)
+   ══════════════════════════════════════════════════════════════ */
+function buildRecommendations(primaryOil, fallbackOil = null, prefs = {}, fillVolume = null) {
+  try {
+    const primaryData = primaryOil?.oil || {};
+    const bestItems   = primaryData?.best        || [];
+    const altItems    = primaryData?.alternative || [];
 
-    console.log(`[buildRec] specs=[${specs.join(", ")}] visc=${viscosity} vol=${oilVolume} limit=${limit}`);
-    return matchOil({ specs, volume: oilVolume, viscosity, prefs, limit });
+    const viscosity = pickViscosity(bestItems, altItems);
+    const specs     = collectSpecs(primaryOil);
+    const aiSpecs   = fallbackOil ? collectSpecs(fallbackOil) : [];
+
+    const oilVolume = fillVolume || primaryOil?.volume || null;
+
+    console.log(`[buildRec] specs=[${specs.join(", ")}] aiSpecs=[${aiSpecs.join(", ")}] visc=${viscosity} vol=${oilVolume}`);
+    return matchOil({ specs, aiSpecs, volume: oilVolume, viscosity, prefs });
   } catch (e) {
     console.error("[oil] matchOil error:", e.message);
     return [];
@@ -134,59 +140,31 @@ function buildRecommendations(oil, prefs = {}, fillVolume = null, limit = 6) {
 
 /* ══════════════════════════════════════════════════════════════
    buildRecommendationsWithCheck — matchOil → GPT → top3
+   primaryOil  — данные из каталога (parsed / gpt_html / gpt_global)
+   aiOil       — данные ИИ (oilGpt из fallbackGlobal), может быть null
    ══════════════════════════════════════════════════════════════ */
-async function buildRecommendationsWithCheck(oil, car, prefs = {}, fillVolume = null, gptCheckEnabled = true) {
-  // Шаг 1: расширенная выборка (6 штук)
-  const candidates = buildRecommendations(oil, prefs, fillVolume, 6);
+async function buildRecommendationsWithCheck(primaryOil, aiOil = null, car, prefs = {}, fillVolume = null, gptCheckEnabled = true) {
+  // Шаг 1: подбор 3 позиций (AREOL + COMMA + прочий)
+  const candidates = buildRecommendations(primaryOil, aiOil, prefs, fillVolume);
   if (!candidates.length) return [];
 
-  // Шаг 2: без GPT — просто top-3
+  // Шаг 2: без GPT — возвращаем как есть (всегда 3: AREOL+COMMA+прочий)
   if (!gptCheckEnabled) {
-    return candidates.slice(0, 3);
+    return candidates;
   }
 
-  // Шаг 3: GPT double-check
-  const allSpecs = extractAllSpecs(oil);
-  const checked = await validateWithGPT(candidates, car, allSpecs);
+  // Шаг 3: GPT double-check — проверяем всех 3
+  const allSpecs = extractAllSpecs(primaryOil);
+  const checked  = await validateWithGPT(candidates, car, allSpecs);
 
-  // Фильтр ≥ 7
-  const passed = checked.filter(c => c._gptScore === null || c._gptScore >= 7);
-
-  if (passed.length >= 3) return passed.slice(0, 3);
-
-  // Шаг 4: не хватает — добираем
-  console.log(`[gptCheck] only ${passed.length}/3 passed, fetching more...`);
-  const more = buildRecommendations(oil, prefs, fillVolume, 12);
-  const checkedArticles = new Set(checked.map(c => c.article));
-  const newOnes = more.filter(c => !checkedArticles.has(c.article));
-
-  if (newOnes.length > 0) {
-    const checked2 = await validateWithGPT(newOnes.slice(0, 6), car, allSpecs);
-    const passed2 = checked2.filter(c => c._gptScore === null || c._gptScore >= 7);
-    passed.push(...passed2);
-  }
-
-  if (passed.length >= 3) return passed.slice(0, 3);
-
-  // Шаг 5: fallback — лучшее из имеющихся
-  const unique = new Map();
-  for (const c of [...passed, ...checked]) {
-    if (!unique.has(c.article)) unique.set(c.article, c);
-  }
-  const fallback = Array.from(unique.values());
-  fallback.sort((a, b) => {
-    const gA = a._gptScore ?? 5, gB = b._gptScore ?? 5;
-    if (gB !== gA) return gB - gA;
-    return (b._score || 0) - (a._score || 0);
-  });
-
-  const final = fallback.slice(0, 3);
-  for (const item of final) {
+  // Отмечаем предупреждения для low-score, но НЕ выбрасываем позиции
+  // (гарантируем AREOL+COMMA+прочий независимо от оценки GPT)
+  return checked.map(item => {
     if (item._gptScore !== null && item._gptScore < 7) {
       item.warning = item.warning || `требует перепроверки (ИИ: ${item._gptScore}/10)`;
     }
-  }
-  return final;
+    return item;
+  });
 }
 
 /* ══════════════════════════════════════════════════════════════
