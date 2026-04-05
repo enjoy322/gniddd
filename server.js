@@ -2,6 +2,7 @@
 const express = require("express");
 const multer  = require("multer");
 const fs      = require("fs");
+const path    = require("path");
 const axios   = require("axios");
 const https   = require("https");
 
@@ -12,10 +13,27 @@ const { findFilters }                        = require("./utils/parseFilters");
 const { getOriginalFilters }                 = require("./utils/getFilters");
 
 const app = express();
+
+// CORS для браузерного расширения
+app.use((req, res, next) => {
+  const origin = req.headers.origin || "";
+  if (origin.startsWith("chrome-extension://") || origin.startsWith("moz-extension://")) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  }
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+
 app.use(express.json());
 app.use(express.static("public"));
 
-const upload   = multer({ dest: "uploads/" });
+const upload     = multer({ dest: "uploads/" });
+const uploadXfer = multer({ dest: "uploads/xfer/", limits: { fileSize: 200 * 1024 * 1024 } });
+
+// Создаём папку xfer если нет
+if (!fs.existsSync("uploads/xfer")) fs.mkdirSync("uploads/xfer", { recursive: true });
 const sessions = {};
 
 const UPEC_TOKEN = "32e33ef47960cdf8b9503c2cd241d20e2893b17623b3c916e829620bcfdf177d";
@@ -41,6 +59,13 @@ function normalizeCar(data) {
 }
 
 function cleanupFile(p) { try { fs.unlinkSync(p); } catch (_) {} }
+
+function makeBreadcrumb(car) {
+  const parts = [car.brand, car.model, car.year];
+  if (car.engine?.volume) parts.push(car.engine.volume + "л");
+  if (car.engine?.code)   parts.push(car.engine.code);
+  return parts.filter(Boolean).join(" → ");
+}
 
 class CarNotFoundError extends Error {
   constructor(vin) { super(`Car not found for VIN: ${vin}`); this.name = "CarNotFoundError"; }
@@ -71,14 +96,46 @@ app.get("/data/:id", (req, res) => {
   res.json(s);
 });
 
-app.post("/manual/:id", (req, res) => {
+app.post("/manual/:id", async (req, res) => {
   const s = sessions[req.params.id];
   if (!s) return res.status(404).json({ error: "session not found" });
-  const vin = normalizeVIN(req.body.vin);
-  if (!vin || vin.length !== 17) return res.status(400).json({ error: "invalid VIN" });
-  saveVIN(s, vin);
-  console.log(`[manual] session=${req.params.id} vin=${vin}`);
-  res.json({ vin });
+  const raw = (req.body.vin || "").trim();
+
+  // Сначала пробуем как VIN (17 символов)
+  const vin = normalizeVIN(raw);
+  if (vin && vin.length === 17) {
+    saveVIN(s, vin);
+    console.log(`[manual] session=${req.params.id} vin=${vin}`);
+    return res.json({ vin });
+  }
+
+  // Иначе пробуем как госномер
+  const regnumber = raw.toUpperCase().replace(/\s/g, "")
+    .replace(/А/g,"A").replace(/В/g,"B").replace(/Е/g,"E").replace(/К/g,"K")
+    .replace(/М/g,"M").replace(/Н/g,"H").replace(/О/g,"O").replace(/Р/g,"P")
+    .replace(/С/g,"C").replace(/Т/g,"T").replace(/У/g,"Y").replace(/Х/g,"X");
+
+  if (regnumber.length >= 4) {
+    try {
+      const response = await axios.get(UPEC_URL, {
+        params: { regnumber, token: UPEC_TOKEN, transportType: "CAR", source: "plate" },
+        headers: { "User-Agent": "Mozilla/5.0" }, httpsAgent,
+        validateStatus: st => st < 500
+      });
+      const foundVin = normalizeVIN(response.data?.vin);
+      if (foundVin && foundVin.length === 17) {
+        saveVIN(s, foundVin);
+        console.log(`[manual] session=${req.params.id} regnumber=${regnumber} vin=${foundVin}`);
+        return res.json({ vin: foundVin, regnumber });
+      }
+      return res.status(404).json({ error: "Автомобиль по госномеру не найден" });
+    } catch (e) {
+      console.error("[manual] regnumber error:", e.message);
+      return res.status(500).json({ error: e.message });
+    }
+  }
+
+  return res.status(400).json({ error: "invalid VIN or plate number" });
 });
 
 app.post("/upload/:id", upload.single("image"), async (req, res) => {
@@ -163,7 +220,8 @@ app.get("/oil/:vin", async (req, res) => {
         oil: null,
         oil_gpt: oilGpt,
         recommendations,
-        filters
+        filters,
+        breadcrumb: makeBreadcrumb(car)
       });
     }
 
@@ -205,7 +263,8 @@ app.get("/oil/:vin", async (req, res) => {
         oil: oilParsed,
         oil_gpt: oilGpt,
         recommendations,
-        filters
+        filters,
+        breadcrumb: makeBreadcrumb(car)
       });
     }
 
@@ -232,7 +291,8 @@ app.get("/oil/:vin", async (req, res) => {
         oil: oilPage,
         oil_gpt: oilGpt,
         recommendations,
-        filters
+        filters,
+        breadcrumb: makeBreadcrumb(car)
       });
     }
 
@@ -249,13 +309,50 @@ app.get("/oil/:vin", async (req, res) => {
       oil: null,
       oil_gpt: oilGpt,
       recommendations,
-      filters
+      filters,
+      breadcrumb: makeBreadcrumb(car)
     });
 
   } catch (e) {
     console.error("[oil] error:", e.message);
     res.status(500).json({ error: e.message });
   }
+});
+
+// ── XFER — передача файлов телефон ↔ ПК ──────────────────────────────────
+app.get("/xfer", (req, res) => res.sendFile(__dirname + "/public/xfer.html"));
+
+app.post("/xfer/upload", uploadXfer.single("file"), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "no file" });
+  const origName = req.file.originalname || "file";
+  const safeName = path.basename(origName).replace(/[^a-zA-Z0-9._\-а-яёА-ЯЁ ]/gu, "_");
+  const dest = path.join("uploads/xfer", Date.now() + "_" + safeName);
+  fs.renameSync(req.file.path, dest);
+  console.log(`[xfer] uploaded: ${dest}`);
+  res.json({ name: path.basename(dest) });
+});
+
+app.get("/xfer/files", (req, res) => {
+  const dir = "uploads/xfer";
+  const files = fs.readdirSync(dir).map(name => {
+    const stat = fs.statSync(path.join(dir, name));
+    return { name, size: stat.size, mtime: stat.mtimeMs };
+  }).sort((a, b) => b.mtime - a.mtime);
+  res.json(files);
+});
+
+app.get("/xfer/dl/:name", (req, res) => {
+  const name = path.basename(req.params.name);
+  const file = path.join(__dirname, "uploads/xfer", name);
+  if (!fs.existsSync(file)) return res.status(404).json({ error: "not found" });
+  res.download(file, name.replace(/^\d+_/, ""));
+});
+
+app.delete("/xfer/del/:name", (req, res) => {
+  const name = path.basename(req.params.name);
+  const file = path.join(__dirname, "uploads/xfer", name);
+  try { fs.unlinkSync(file); } catch (_) {}
+  res.json({ ok: true });
 });
 
 app.get("/:id", (req, res) => res.sendFile(__dirname + "/public/index.html"));

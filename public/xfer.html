@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Передача файлов</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:      #f3f4f6;
+      --surface: #ffffff;
+      --surface2:#f0f0ee;
+      --border:  #e2e0dc;
+      --border2: #cecbc5;
+      --accent:  #111111;
+      --text:    #111111;
+      --muted:   #6b7280;
+      --soft:    #9ca3af;
+      --green:   #16a34a;
+      --red:     #dc2626;
+      --radius:  10px;
+      --shadow:  0 4px 16px rgba(0,0,0,0.06);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Inter', -apple-system, sans-serif;
+      font-size: 14px; line-height: 1.5; min-height: 100vh;
+    }
+
+    header {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 0 24px; height: 56px;
+      display: flex; align-items: center; gap: 12px;
+      position: sticky; top: 0; z-index: 10;
+      box-shadow: 0 1px 3px rgba(0,0,0,.07);
+    }
+    .brand { font-size: 16px; font-weight: 700; }
+    .sub   { font-size: 13px; color: var(--muted); }
+
+    .main { max-width: 680px; margin: 0 auto; padding: 24px 20px; }
+
+    .drop-zone {
+      background: var(--surface); border: 2px dashed var(--border2);
+      border-radius: var(--radius); padding: 40px 24px;
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      cursor: pointer; transition: border-color .2s, background .2s;
+      text-align: center;
+    }
+    .drop-zone:hover, .drop-zone.drag { border-color: var(--accent); background: #fafafa; }
+    .drop-ico { font-size: 36px; opacity: .5; }
+    .drop-label { font-size: 15px; font-weight: 600; }
+    .drop-hint  { font-size: 12px; color: var(--soft); }
+    #fileInput { display: none; }
+
+    .progress-bar { display: none; margin-top: 12px; }
+    .progress-track { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .progress-fill  { height: 100%; background: var(--accent); width: 0%; transition: width .2s; }
+    .progress-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    .section-title {
+      font-size: 12px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--soft);
+      margin: 28px 0 12px;
+    }
+
+    .file-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .file-item {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 12px 16px;
+      display: flex; align-items: center; gap: 12px;
+      box-shadow: var(--shadow);
+    }
+    .file-ico { font-size: 20px; flex-shrink: 0; }
+    .file-info { flex: 1; min-width: 0; }
+    .file-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-meta { font-size: 11px; color: var(--soft); margin-top: 2px; }
+    .file-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      border: none; border-radius: 7px; padding: 7px 14px;
+      font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: opacity .15s;
+    }
+    .btn-dl  { background: var(--accent); color: #fff; }
+    .btn-del { background: var(--surface2); border: 1px solid var(--border2); color: var(--muted); }
+    .btn-dl:hover, .btn-del:hover { opacity: .7; }
+
+    .empty-list { text-align: center; padding: 32px; color: var(--soft); font-size: 13px; }
+
+    .toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #1a1917; color: #fff;
+      font-size: 13px; font-weight: 500; padding: 10px 20px;
+      border-radius: 8px; z-index: 999; opacity: 0;
+      transition: transform .25s, opacity .25s; pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    @media (max-width: 500px) {
+      header, .main { padding-left: 14px; padding-right: 14px; }
+      .file-actions { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">📂 Xfer</div>
+  <div class="sub">Передача файлов</div>
+</header>
+
+<div class="main">
+
+  <div class="drop-zone" id="dropZone">
+    <div class="drop-ico">📤</div>
+    <div class="drop-label">Перетащите файл или нажмите для выбора</div>
+    <div class="drop-hint">Любой тип файла · до 200 МБ</div>
+    <input type="file" id="fileInput" />
+  </div>
+
+  <div class="progress-bar" id="progressBar">
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-label" id="progressLabel">Загружаем…</div>
+  </div>
+
+  <div class="section-title">Файлы на сервере</div>
+  <div class="file-list" id="fileList">
+    <div class="empty-list">Загрузка…</div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const dropZone    = document.getElementById('dropZone');
+  const fileInput   = document.getElementById('fileInput');
+  const progressBar = document.getElementById('progressBar');
+  const progressFill= document.getElementById('progressFill');
+  const progressLbl = document.getElementById('progressLabel');
+  const fileList    = document.getElementById('fileList');
+
+  // Клик по зоне
+  dropZone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => { if (fileInput.files[0]) uploadFile(fileInput.files[0]); fileInput.value=''; });
+
+  // Drag & drop
+  ['dragenter','dragover'].forEach(e => dropZone.addEventListener(e, ev => { ev.preventDefault(); dropZone.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(e => dropZone.addEventListener(e, ev => { ev.preventDefault(); dropZone.classList.remove('drag'); }));
+  dropZone.addEventListener('drop', ev => { const f = ev.dataTransfer.files[0]; if (f) uploadFile(f); });
+
+  async function uploadFile(file) {
+    progressBar.style.display = 'block';
+    progressFill.style.width  = '0%';
+    progressLbl.textContent   = 'Загружаем ' + file.name + '…';
+
+    const fd = new FormData();
+    fd.append('file', file);
+
+    return new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/xfer/upload');
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const pct = Math.round(e.loaded / e.total * 100);
+          progressFill.style.width = pct + '%';
+          progressLbl.textContent  = 'Загружаем ' + pct + '%…';
+        }
+      };
+      xhr.onload = () => {
+        progressBar.style.display = 'none';
+        if (xhr.status === 200) {
+          showToast('Файл загружен: ' + file.name);
+          loadFiles();
+        } else {
+          showToast('Ошибка загрузки');
+        }
+        resolve();
+      };
+      xhr.onerror = () => { progressBar.style.display = 'none'; showToast('Ошибка соединения'); resolve(); };
+      xhr.send(fd);
+    });
+  }
+
+  async function loadFiles() {
+    try {
+      const res  = await fetch('/xfer/files');
+      const data = await res.json();
+      if (!data.length) { fileList.innerHTML = '<div class="empty-list">Пока нет файлов</div>'; return; }
+      fileList.innerHTML = data.map(f => {
+        const displayName = f.name.replace(/^\d+_/, '');
+        const size = formatSize(f.size);
+        const dt   = new Date(f.mtime).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+        const ico  = fileIcon(displayName);
+        return '<div class="file-item">' +
+          '<div class="file-ico">' + ico + '</div>' +
+          '<div class="file-info">' +
+            '<div class="file-name" title="' + esc(displayName) + '">' + esc(displayName) + '</div>' +
+            '<div class="file-meta">' + size + ' · ' + dt + '</div>' +
+          '</div>' +
+          '<div class="file-actions">' +
+            '<a class="btn btn-dl" href="/xfer/dl/' + esc(f.name) + '" download>' +
+              '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' +
+              'Скачать' +
+            '</a>' +
+            '<button class="btn btn-del" onclick="deleteFile(\'' + esc(f.name) + '\', this)">' +
+              '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>' +
+              'Удалить' +
+            '</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    } catch (e) { fileList.innerHTML = '<div class="empty-list">Ошибка загрузки списка</div>'; }
+  }
+
+  async function deleteFile(name, btn) {
+    btn.disabled = true;
+    await fetch('/xfer/del/' + encodeURIComponent(name), { method: 'DELETE' });
+    showToast('Удалено');
+    loadFiles();
+  }
+
+  function fileIcon(name) {
+    const ext = (name.split('.').pop() || '').toLowerCase();
+    const map = { pdf:'📄', doc:'📝', docx:'📝', xls:'📊', xlsx:'📊', jpg:'🖼️', jpeg:'🖼️', png:'🖼️', gif:'🖼️', mp4:'🎬', mov:'🎬', mp3:'🎵', zip:'📦', rar:'📦', txt:'📋' };
+    return map[ext] || '📁';
+  }
+
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' Б';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' КБ';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' МБ';
+  }
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function showToast(msg, dur=3000) {
+    const el = document.getElementById('toast');
+    el.textContent = msg; el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), dur);
+  }
+
+  loadFiles();
+  setInterval(loadFiles, 15000);
+</script>
+</body>
+</html>
