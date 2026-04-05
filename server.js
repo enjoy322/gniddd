@@ -211,7 +211,7 @@ app.get("/oil/:vin", async (req, res) => {
         : null;
 
       const recommendations = await buildRecommendationsWithCheck(
-        oilGpt, car, prefs, gptFillVolume, gptCheckEnabled
+        oilGpt, null, car, prefs, gptFillVolume, gptCheckEnabled
       );
 
       return res.json({
@@ -254,7 +254,7 @@ app.get("/oil/:vin", async (req, res) => {
       };
 
       const recommendations = await buildRecommendationsWithCheck(
-        oilParsed, car, prefs, parsedFillVolume, gptCheckEnabled
+        oilParsed, oilGpt, car, prefs, parsedFillVolume, gptCheckEnabled
       );
 
       return res.json({
@@ -282,7 +282,7 @@ app.get("/oil/:vin", async (req, res) => {
       };
 
       const recommendations = await buildRecommendationsWithCheck(
-        oilPage, car, prefs, pageFillVolume, gptCheckEnabled
+        oilPage, oilGpt, car, prefs, pageFillVolume, gptCheckEnabled
       );
 
       return res.json({
@@ -300,7 +300,7 @@ app.get("/oil/:vin", async (req, res) => {
     console.log("[oil] source=gpt_global only");
 
     const recommendations = await buildRecommendationsWithCheck(
-      oilGpt, car, prefs, gptFillVolume, gptCheckEnabled
+      oilGpt, null, car, prefs, gptFillVolume, gptCheckEnabled
     );
 
     return res.json({
