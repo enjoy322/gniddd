@@ -194,10 +194,8 @@ app.get("/oil/:vin", async (req, res) => {
 
     const filtersPromise = getOriginalFilters(car);
 
-    // filtersUrl — ссылка на каталог запчастей для ТО (autodoc.ru)
-    const filtersUrl = `https://www.autodoc.ru/catalog/auto/${
-      encodeURIComponent(car.brand.toLowerCase())}/${
-      encodeURIComponent(car.model.toLowerCase())}/`;
+    // filtersUrl — ссылка на каталог ТО (источник данных — getcat.net)
+    const filtersUrl = "https://getcat.net/";
 
     const url = await resolveUrl(car, tree);
 
