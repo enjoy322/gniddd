@@ -98,6 +98,41 @@
       max-height: 400px; overflow-y: auto;
     }
 
+    /* Token panel */
+    .token-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px 20px;
+    }
+    .token-header {
+      display: flex; align-items: center; gap: 8px; cursor: pointer;
+      user-select: none;
+    }
+    .token-title { font-size: 12px; font-weight: 700; color: var(--soft); letter-spacing: .5px; text-transform: uppercase; }
+    .token-preview { font-size: 11px; color: var(--soft); font-family: 'JetBrains Mono', monospace; margin-left: auto; }
+    .token-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+    .token-dot.stale { background: var(--red); }
+    .token-body { margin-top: 14px; display: none; flex-direction: column; gap: 10px; }
+    .token-body.open { display: flex; }
+    .token-row { display: flex; gap: 8px; align-items: flex-end; }
+    .token-field { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .token-field label { font-size: 11px; font-weight: 700; color: var(--soft); letter-spacing: .5px; text-transform: uppercase; }
+    .token-input {
+      border: 1px solid var(--border2); border-radius: 7px; padding: 8px 12px;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      outline: none; width: 100%; background: var(--surface2);
+    }
+    .token-input:focus { border-color: var(--accent); background: #fff; }
+    .btn-token {
+      border: none; border-radius: 7px; padding: 9px 14px;
+      font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: opacity .15s; white-space: nowrap;
+    }
+    .btn-auto  { background: var(--accent); color: #fff; }
+    .btn-save  { background: var(--surface2); color: var(--text); border: 1px solid var(--border2); }
+    .btn-token:hover { opacity: .75; }
+    .btn-token:disabled { opacity: .4; cursor: not-allowed; }
+    .token-updated { font-size: 11px; color: var(--soft); margin-top: 2px; }
+
     .multi-results { display: flex; flex-direction: column; gap: 8px; }
     .result-item {
       background: var(--surface2); border: 1px solid var(--border);
@@ -121,6 +156,35 @@
 </header>
 
 <div class="main">
+
+  <!-- Token management panel -->
+  <div class="token-card" id="tokenCard">
+    <div class="token-header" onclick="toggleTokenPanel()">
+      <div class="token-dot" id="tokenDot"></div>
+      <div class="token-title">Armtek токен</div>
+      <div class="token-preview" id="tokenPreview">загрузка…</div>
+      <svg id="tokenChevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;transition:transform .2s"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="token-body" id="tokenBody">
+      <div class="token-row">
+        <div class="token-field" style="flex:3">
+          <label>Bearer токен</label>
+          <input class="token-input" id="tokenInput" type="text" placeholder="eyJhbGci… или Bearer eyJ…" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="token-field" style="flex:1">
+          <label>Captcha Hash</label>
+          <input class="token-input" id="captchaInput" type="text" placeholder="c92e38c2…" autocomplete="off" spellcheck="false" />
+        </div>
+      </div>
+      <div class="token-row">
+        <button class="btn-token btn-auto" id="btnRefresh" onclick="refreshToken()">
+          <span id="refreshLabel">⟳ Авто-токен</span>
+        </button>
+        <button class="btn-token btn-save" onclick="saveToken()">Сохранить вручную</button>
+        <div class="token-updated" id="tokenUpdated"></div>
+      </div>
+    </div>
+  </div>
 
   <div class="search-card">
     <div class="search-label">VIN или госномер</div>
@@ -263,6 +327,72 @@
   // Автозапуск если есть q= в URL
   const urlQ = new URLSearchParams(location.search).get('q');
   if (urlQ) { input.value = urlQ; lookup(); }
+
+  // ── TOKEN PANEL ─────────────────────────────────────────────────────────────
+  async function loadTokenStatus() {
+    try {
+      const r = await fetch('/vin/token-status');
+      const d = await r.json();
+      document.getElementById('tokenPreview').textContent = d.preview || '…';
+      document.getElementById('captchaInput').placeholder = d.captcha || '';
+      const dot = document.getElementById('tokenDot');
+      dot.className = 'token-dot';  // green = ok
+      if (d.updatedAt) {
+        document.getElementById('tokenUpdated').textContent = 'обновлён ' + new Date(d.updatedAt).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+      }
+    } catch (_) {}
+  }
+
+  function toggleTokenPanel() {
+    const body = document.getElementById('tokenBody');
+    const chevron = document.getElementById('tokenChevron');
+    const open = body.classList.toggle('open');
+    chevron.style.transform = open ? 'rotate(180deg)' : '';
+  }
+
+  async function refreshToken() {
+    const btn = document.getElementById('btnRefresh');
+    const lbl = document.getElementById('refreshLabel');
+    btn.disabled = true;
+    lbl.textContent = '…';
+    try {
+      const r = await fetch('/vin/refresh-token', { method: 'POST' });
+      const d = await r.json();
+      if (!r.ok || !d.ok) throw new Error(d.error || 'ошибка');
+      document.getElementById('tokenPreview').textContent = d.bearer.substring(0, 30) + '…';
+      document.getElementById('tokenUpdated').textContent = 'обновлён ' + new Date(d.updatedAt).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+      lbl.textContent = '✓ Токен обновлён';
+      document.getElementById('tokenDot').className = 'token-dot';
+      setTimeout(() => { lbl.textContent = '⟳ Авто-токен'; btn.disabled = false; }, 2000);
+    } catch (e) {
+      lbl.textContent = '✗ ' + e.message;
+      document.getElementById('tokenDot').className = 'token-dot stale';
+      setTimeout(() => { lbl.textContent = '⟳ Авто-токен'; btn.disabled = false; }, 3000);
+    }
+  }
+
+  async function saveToken() {
+    const bearer  = document.getElementById('tokenInput').value.trim();
+    const captcha = document.getElementById('captchaInput').value.trim();
+    if (!bearer && !captcha) return;
+    try {
+      const r = await fetch('/vin/set-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bearer, captcha }),
+      });
+      const d = await r.json();
+      if (!r.ok || !d.ok) throw new Error(d.error || 'ошибка');
+      document.getElementById('tokenPreview').textContent = d.bearer.substring(0, 30) + '…';
+      document.getElementById('tokenUpdated').textContent = 'сохранён вручную ' + new Date(d.updatedAt).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+      document.getElementById('tokenInput').value = '';
+      document.getElementById('tokenDot').className = 'token-dot';
+    } catch (e) {
+      alert('Ошибка: ' + e.message);
+    }
+  }
+
+  loadTokenStatus();
 </script>
 </body>
 </html>

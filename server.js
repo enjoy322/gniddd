@@ -376,10 +376,18 @@ app.delete("/xfer/del/:name", (req, res) => {
 });
 
 // ── ARMTEK VIN/PLATE LOOKUP ───────────────────────────────────────────────────
-const ARMTEK_VIN_URL = "https://armtek.ru/rest/ru/laximo-microservice/v1/search/get-data-by-vin-or-plate-number";
-const ARMTEK_BEARER  = process.env.ARMTEK_TOKEN ||
-  "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE4MDU3NjQyNjYsImtleSI6IjcxZDY2YWIxMjk4OThhM2RkZWIxYTI1M2VjZGQ5N2Y5IiwidHlwZSI6Imc5WCIsImRhdGEiOnsibG9naW4iOiJHVUVTVF8xNzc0NjYwMjY2MDMyMTUzIiwidXVpZCI6IkdlN2U0ZGZhYmYzMjI4NzA4MDQxNDA2NTM4NjJiYjY4MCIsInV0eXBlIjoiRyIsInVmdW5jdGlvbiI6bnVsbCwiYWNsU2NoZW1lVHlwZSI6IltcImYwOGI3YzdkLTkxMGQtNDE5MC0zMWVhLWYxOGRmNGIzMTBjMlwiXSJ9fQ==.pNo5QPM73TrJ5+B0pZn76ftD79wswVJp9Ns+s742FYo=";
-const ARMTEK_CAPTCHA = process.env.ARMTEK_CAPTCHA || "c92e38c27cc86fc28c04c3b1b6327239";
+const ARMTEK_VIN_URL      = "https://armtek.ru/rest/ru/laximo-microservice/v1/search/get-data-by-vin-or-plate-number";
+const ARMTEK_GUEST_URL    = "https://armtek.ru/rest/ru/auth-microservice/v1/guest";
+const ARMTEK_AUTH_SYSTEM  = "AUTH_MICROSERVICE_V1_ARMTEK_RU";
+const ARMTEK_AUTH_TOKEN   = "nJhNK87gJOOU6dfr";
+
+// In-memory token state (overridable at runtime via /vin/set-token or /vin/refresh-token)
+let armtekState = {
+  bearer:  process.env.ARMTEK_TOKEN  ||
+    "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE4MDU3NjQyNjYsImtleSI6IjcxZDY2YWIxMjk4OThhM2RkZWIxYTI1M2VjZGQ5N2Y5IiwidHlwZSI6Imc5WCIsImRhdGEiOnsibG9naW4iOiJHVUVTVF8xNzc0NjYwMjY2MDMyMTUzIiwidXVpZCI6IkdlN2U0ZGZhYmYzMjI4NzA4MDQxNDA2NTM4NjJiYjY4MCIsInV0eXBlIjoiRyIsInVmdW5jdGlvbiI6bnVsbCwiYWNsU2NoZW1lVHlwZSI6IltcImYwOGI3YzdkLTkxMGQtNDE5MC0zMWVhLWYxOGRmNGIzMTBjMlwiXSJ9fQ==.pNo5QPM73TrJ5+B0pZn76ftD79wswVJp9Ns+s742FYo=",
+  captcha: process.env.ARMTEK_CAPTCHA || "c92e38c27cc86fc28c04c3b1b6327239",
+  updatedAt: null,
+};
 
 function parseArmtekResult(data) {
   // Laximo возвращает массив вариантов или объект
@@ -415,10 +423,10 @@ app.get("/vin/lookup", async (req, res) => {
       headers: {
         "accept":               "application/json, text/plain, */*",
         "accept-language":      "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
-        "authorization":        ARMTEK_BEARER,
+        "authorization":        armtekState.bearer,
         "content-type":         "application/json",
         "x-app-version":        "1.0.12",
-        "x-auth-captcha-hash":  ARMTEK_CAPTCHA,
+        "x-auth-captcha-hash":  armtekState.captcha,
         "x-ca-external-system": "IM_RU",
         "x-ca-vkorg":           "4000",
         "user-agent":           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
@@ -441,6 +449,48 @@ app.get("/vin/lookup", async (req, res) => {
     console.error("[vin/lookup] error:", e.message);
     res.status(500).json({ error: e.message });
   }
+});
+
+// Автогенерация гостевого токена Armtek
+app.post("/vin/refresh-token", async (req, res) => {
+  try {
+    const r = await axios.post(ARMTEK_GUEST_URL, {}, {
+      headers: {
+        "X-AUTH-SYSTEM":  ARMTEK_AUTH_SYSTEM,
+        "X-AUTH-TOKEN":   ARMTEK_AUTH_TOKEN,
+        "content-type":   "application/json",
+        "user-agent":     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+        "origin":         "https://armtek.ru",
+        "referer":        "https://armtek.ru/",
+      },
+      timeout: 10000,
+    });
+    const token = r.data?.data?.accessToken;
+    if (!token) return res.status(502).json({ error: "no accessToken in response", raw: r.data });
+    armtekState.bearer    = `Bearer ${token}`;
+    armtekState.updatedAt = new Date().toISOString();
+    console.log("[vin/refresh-token] new guest token obtained");
+    res.json({ ok: true, bearer: armtekState.bearer, updatedAt: armtekState.updatedAt });
+  } catch (e) {
+    console.error("[vin/refresh-token] error:", e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Ручная установка токена / captcha hash
+app.post("/vin/set-token", (req, res) => {
+  const { bearer, captcha } = req.body || {};
+  if (bearer)  { armtekState.bearer  = bearer.startsWith("Bearer ") ? bearer : `Bearer ${bearer}`; }
+  if (captcha) { armtekState.captcha = captcha; }
+  armtekState.updatedAt = new Date().toISOString();
+  console.log("[vin/set-token] token updated manually");
+  res.json({ ok: true, bearer: armtekState.bearer, captcha: armtekState.captcha, updatedAt: armtekState.updatedAt });
+});
+
+// Получить текущее состояние токена (без секретных данных)
+app.get("/vin/token-status", (req, res) => {
+  const preview = armtekState.bearer.substring(0, 30) + "…";
+  res.json({ preview, captcha: armtekState.captcha, updatedAt: armtekState.updatedAt });
 });
 
 // ── ИСТОРИЯ ВИНОВ ─────────────────────────────────────────────────────────────
