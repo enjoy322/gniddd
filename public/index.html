@@ -780,7 +780,7 @@
         if (!oilSrc && !oilGpt) {
           liquids.innerHTML = emptyHtml('🛢️', 'Нет данных по маслу');
           renderRec(recs);
-          renderFilters(data.filters, data.breadcrumb, data.url);
+          renderFilters(data.filters, data.filtersBreadcrumb, data.filtersUrl);
           return;
         }
 
@@ -843,7 +843,7 @@
             : '');
 
         renderRec(recs);
-        renderFilters(data.filters, data.breadcrumb, data.url);
+        renderFilters(data.filters, data.filtersBreadcrumb, data.filtersUrl);
 
       } catch (e) {
         if (localVin !== currentVin) return;

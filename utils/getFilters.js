@@ -43,7 +43,7 @@ async function findBrandId(brandName) {
 }
 
 // ── 2. Получаем модификации и ищем подходящую по году/модели ─────────────────
-async function findModId(brandId, modelName, year) {
+async function findMod(brandId, modelName, year) {
   const mods = await get(`modifications/get-list?brand=${brandId}`);
   const q = modelName.toLowerCase().trim();
 
@@ -62,13 +62,13 @@ async function findModId(brandId, modelName, year) {
   if (!candidates.length) return null;
   // Берём наиболее специфичное (длиннее имя = точнее)
   candidates.sort((a, b) => b.name.length - a.name.length);
-  return candidates[0].id;
+  return candidates[0]; // возвращаем объект целиком, не только id
 }
 
 // ── 3. Получаем конкретную версию по коду двигателя ──────────────────────────
-async function findVehicleId(modId, engineCode) {
+async function findVehicle(modId, engineCode) {
   const vehicles = await get(`vehicles/get-list?mod=${modId}`);
-  if (!engineCode) return vehicles[0]?.id || null;
+  if (!engineCode) return vehicles[0] || null;
 
   const codes = engineCode
     .toUpperCase()
@@ -85,7 +85,7 @@ async function findVehicleId(modId, engineCode) {
   });
 
   // Фолбэк — первая версия
-  return found ? found.id : (vehicles[0]?.id || null);
+  return found || vehicles[0] || null; // объект целиком
 }
 
 // ── 4. Получаем список деталей и классифицируем ───────────────────────────────
@@ -143,28 +143,39 @@ async function getOriginalFilters(car) {
       return null;
     }
 
-    const modId = await findModId(brandId, car.model, car.year);
-    if (!modId) {
+    const mod = await findMod(brandId, car.model, car.year);
+    if (!mod) {
       console.log(`[getFilters] modification not found: ${car.model} ${car.year}`);
       return null;
     }
 
-    const vehicleId = await findVehicleId(modId, car.engine?.code);
-    if (!vehicleId) {
+    const vehicle = await findVehicle(mod.id, car.engine?.code);
+    if (!vehicle) {
       console.log(`[getFilters] vehicle not found for engine: ${car.engine?.code}`);
       return null;
     }
 
+    const vehicleId = vehicle.id;
     const details = await getVehicleDetails(vehicleId);
+
+    // Хлебные крошки каталога ТО: "Sandero II 2013–2018 / D4F 1.1"
+    const yearRange = [mod.productionYearFrom, mod.productionYearTo]
+      .filter(Boolean).join("–");
+    const modLabel = [mod.name, yearRange].filter(Boolean).join(" ");
+    const engLabel = [vehicle.engineCode, vehicle.engineVolume]
+      .filter(Boolean).join(" ");
+    const catalogBreadcrumb = [car.brand, modLabel, engLabel]
+      .filter(Boolean).join(" / ");
+
     console.log(
-      `[getFilters] ok: vehicleId=${vehicleId}`,
+      `[getFilters] ok: vehicleId=${vehicleId} bc="${catalogBreadcrumb}"`,
       `oil=${details.oil_filter.length}`,
       `air=${details.air_filter.length}`,
       `cabin=${details.cabin_filter.length}`,
       `spark=${details.spark_plug.length}`
     );
 
-    return { vehicleId, ...details };
+    return { vehicleId, catalogBreadcrumb, ...details };
   } catch (e) {
     console.error("[getFilters] error:", e.message);
     return null;

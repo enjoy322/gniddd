@@ -194,6 +194,11 @@ app.get("/oil/:vin", async (req, res) => {
 
     const filtersPromise = getOriginalFilters(car);
 
+    // filtersUrl — ссылка на каталог запчастей для ТО (autodoc.ru)
+    const filtersUrl = `https://www.autodoc.ru/catalog/auto/${
+      encodeURIComponent(car.brand.toLowerCase())}/${
+      encodeURIComponent(car.model.toLowerCase())}/`;
+
     const url = await resolveUrl(car, tree);
 
     // ── Нет URL в дереве — только GPT ────────────────────────────────────────
@@ -221,7 +226,9 @@ app.get("/oil/:vin", async (req, res) => {
         oil_gpt: oilGpt,
         recommendations,
         filters,
-        breadcrumb: makeBreadcrumb(car)
+        breadcrumb: makeBreadcrumb(car),
+        filtersBreadcrumb: filters?.catalogBreadcrumb || null,
+        filtersUrl
       });
     }
 
@@ -264,7 +271,9 @@ app.get("/oil/:vin", async (req, res) => {
         oil_gpt: oilGpt,
         recommendations,
         filters,
-        breadcrumb: makeBreadcrumb(car)
+        breadcrumb: makeBreadcrumb(car),
+        filtersBreadcrumb: filters?.catalogBreadcrumb || null,
+        filtersUrl
       });
     }
 
@@ -292,7 +301,9 @@ app.get("/oil/:vin", async (req, res) => {
         oil_gpt: oilGpt,
         recommendations,
         filters,
-        breadcrumb: makeBreadcrumb(car)
+        breadcrumb: makeBreadcrumb(car),
+        filtersBreadcrumb: filters?.catalogBreadcrumb || null,
+        filtersUrl
       });
     }
 
@@ -310,7 +321,9 @@ app.get("/oil/:vin", async (req, res) => {
       oil_gpt: oilGpt,
       recommendations,
       filters,
-      breadcrumb: makeBreadcrumb(car)
+      breadcrumb: makeBreadcrumb(car),
+      filtersBreadcrumb: filters?.catalogBreadcrumb || null,
+      filtersUrl
     });
 
   } catch (e) {
