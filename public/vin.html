@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VIN Lookup</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:      #f3f4f6; --surface: #fff; --surface2: #f0f0ee;
+      --border:  #e2e0dc; --border2: #cecbc5;
+      --accent:  #111111; --text: #111111;
+      --muted:   #6b7280; --soft: #9ca3af;
+      --green:   #16a34a; --blue: #2563eb; --red: #dc2626;
+      --radius:  10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; min-height: 100vh; }
+
+    header {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 0 24px; height: 52px; display: flex; align-items: center; gap: 10px;
+      position: sticky; top: 0; z-index: 10;
+    }
+    .brand { font-size: 16px; font-weight: 700; }
+    .sub   { font-size: 13px; color: var(--muted); }
+
+    .main { max-width: 760px; margin: 0 auto; padding: 28px 20px; display: flex; flex-direction: column; gap: 20px; }
+
+    .search-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px 24px;
+    }
+    .search-label { font-size: 12px; font-weight: 700; color: var(--soft); letter-spacing: .5px; text-transform: uppercase; margin-bottom: 10px; }
+    .search-row { display: flex; gap: 8px; }
+    .search-input {
+      flex: 1; border: 1px solid var(--border2); border-radius: 8px;
+      padding: 10px 14px; font-family: 'JetBrains Mono', monospace;
+      font-size: 14px; font-weight: 600; letter-spacing: 1px;
+      outline: none; text-transform: uppercase;
+      transition: border-color .15s;
+    }
+    .search-input:focus { border-color: var(--accent); }
+    .btn-search {
+      background: var(--accent); color: #fff; border: none;
+      border-radius: 8px; padding: 0 20px;
+      font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: opacity .15s;
+    }
+    .btn-search:hover { opacity: .8; }
+    .btn-search:disabled { opacity: .4; cursor: not-allowed; }
+
+    .hint { font-size: 12px; color: var(--soft); margin-top: 8px; }
+
+    .result-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+      display: none;
+    }
+    .result-card.visible { display: block; }
+    .result-hd {
+      padding: 12px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--soft);
+    }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+    .status-dot.err { background: var(--red); }
+
+    .result-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+    .car-title { font-size: 20px; font-weight: 700; }
+    .car-sub   { font-size: 13px; color: var(--muted); }
+
+    .fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+    .field {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 14px;
+    }
+    .field-key { font-size: 11px; font-weight: 700; color: var(--soft); letter-spacing: .5px; text-transform: uppercase; margin-bottom: 4px; }
+    .field-val { font-size: 14px; font-weight: 600; }
+    .field-val.mono { font-family: 'JetBrains Mono', monospace; font-size: 13px; letter-spacing: 1px; }
+
+    .tabs { display: flex; gap: 2px; background: var(--surface2); border-radius: 8px; padding: 3px; }
+    .tab {
+      flex: 1; text-align: center; padding: 6px 12px;
+      font-size: 12px; font-weight: 600; color: var(--muted);
+      border-radius: 6px; cursor: pointer; transition: all .15s;
+    }
+    .tab.active { background: var(--surface); color: var(--accent); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .raw-block {
+      background: #1a1917; color: #e5e3de;
+      border-radius: 8px; padding: 16px; overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6;
+      max-height: 400px; overflow-y: auto;
+    }
+
+    .multi-results { display: flex; flex-direction: column; gap: 8px; }
+    .result-item {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px 16px; cursor: pointer;
+      transition: border-color .15s;
+    }
+    .result-item:hover { border-color: var(--accent); }
+    .result-item-title { font-weight: 700; margin-bottom: 4px; }
+    .result-item-sub { font-size: 12px; color: var(--muted); }
+
+    .empty-msg { text-align: center; padding: 32px; color: var(--soft); }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="brand">🔎 VIN Lookup</div>
+  <div class="sub">через Armtek Laximo</div>
+</header>
+
+<div class="main">
+
+  <div class="search-card">
+    <div class="search-label">VIN или госномер</div>
+    <div class="search-row">
+      <input class="search-input" id="query" type="text" maxlength="30"
+        placeholder="VF1RFB00X55560327 или Е740КО76"
+        autocomplete="off" spellcheck="false" />
+      <button class="btn-search" id="btnSearch">Найти</button>
+    </div>
+    <div class="hint">Принимает VIN (17 символов) или госномер — например Е740КО76</div>
+  </div>
+
+  <div class="result-card" id="resultCard">
+    <div class="result-hd">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="resultStatus">Результат</span>
+    </div>
+    <div class="result-body" id="resultBody"></div>
+  </div>
+
+</div>
+
+<script>
+  const input  = document.getElementById('query');
+  const btn    = document.getElementById('btnSearch');
+  const card   = document.getElementById('resultCard');
+  const body   = document.getElementById('resultBody');
+  const sdot   = document.getElementById('statusDot');
+  const sstatus = document.getElementById('resultStatus');
+
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function showResult(data) {
+    card.classList.add('visible');
+    const res = data.results || [];
+
+    if (!res.length) {
+      sdot.className = 'status-dot err';
+      sstatus.textContent = 'Ничего не найдено';
+      body.innerHTML = '<div class="empty-msg">Armtek не вернул результатов для <b>' + esc(data.q) + '</b></div>' +
+        '<details style="margin-top:12px"><summary style="cursor:pointer;font-size:12px;color:var(--soft)">Сырой ответ</summary>' +
+        '<div class="raw-block">' + esc(JSON.stringify(data.raw, null, 2)) + '</div></details>';
+      return;
+    }
+
+    sdot.className = 'status-dot';
+    sstatus.textContent = res.length === 1 ? 'Найден автомобиль' : `Найдено вариантов: ${res.length}`;
+
+    if (res.length === 1) {
+      renderCar(res[0], data.raw, body);
+    } else {
+      let html = '<div class="tabs"><div class="tab active" onclick="switchTab(0)">Все варианты</div><div class="tab" onclick="switchTab(1)">Сырой JSON</div></div>';
+      html += '<div class="tab-panel active" id="tp0"><div class="multi-results">' +
+        res.map((r, i) => {
+          const title = [r.brand, r.model, r.year].filter(Boolean).join(' ');
+          const sub   = [r.vin || r.plate, r.engine_code, r.engine_vol ? r.engine_vol + 'cc' : null].filter(Boolean).join(' · ');
+          return '<div class="result-item" onclick="showSingle(' + i + ')">' +
+            '<div class="result-item-title">' + esc(title || '—') + '</div>' +
+            '<div class="result-item-sub">' + esc(sub) + '</div>' +
+          '</div>';
+        }).join('') + '</div></div>';
+      html += '<div class="tab-panel" id="tp1"><div class="raw-block">' + esc(JSON.stringify(data.raw, null, 2)) + '</div></div>';
+      body.innerHTML = html;
+      body._data = data;
+    }
+  }
+
+  function renderCar(r, rawAll, container) {
+    const title = [r.brand, r.model].filter(Boolean).join(' ');
+    const sub   = [r.generation, r.year ? r.year + ' г.' : null, r.body].filter(Boolean).join(' · ');
+
+    const fields = [
+      { k: 'VIN',       v: r.vin,        mono: true },
+      { k: 'Госномер',  v: r.plate },
+      { k: 'Марка',     v: r.brand },
+      { k: 'Модель',    v: r.model },
+      { k: 'Год',       v: r.year },
+      { k: 'Двигатель', v: r.engine_code },
+      { k: 'Объём',     v: r.engine_vol ? r.engine_vol + ' cc' : null },
+      { k: 'Кузов',     v: r.body },
+      { k: 'Цвет',      v: r.color },
+    ].filter(f => f.v);
+
+    let html = '';
+    if (title) html += '<div><div class="car-title">' + esc(title) + '</div>' + (sub ? '<div class="car-sub">' + esc(sub) + '</div>' : '') + '</div>';
+    if (fields.length) {
+      html += '<div class="fields">' + fields.map(f =>
+        '<div class="field"><div class="field-key">' + esc(f.k) + '</div>' +
+        '<div class="field-val' + (f.mono ? ' mono' : '') + '">' + esc(f.v) + '</div></div>'
+      ).join('') + '</div>';
+    }
+    html += '<details><summary style="cursor:pointer;font-size:12px;color:var(--soft);margin-top:4px">Сырой ответ</summary>' +
+      '<div class="raw-block">' + esc(JSON.stringify(rawAll, null, 2)) + '</div></details>';
+    container.innerHTML = html;
+  }
+
+  function switchTab(i) {
+    document.querySelectorAll('.tab').forEach((t,j) => t.classList.toggle('active', i===j));
+    document.querySelectorAll('.tab-panel').forEach((p,j) => p.classList.toggle('active', i===j));
+  }
+
+  function showSingle(i) {
+    const d = body._data;
+    renderCar(d.results[i], d.raw, body);
+    sstatus.textContent = [d.results[i].brand, d.results[i].model, d.results[i].year].filter(Boolean).join(' ');
+  }
+
+  async function lookup() {
+    const q = input.value.trim();
+    if (!q) return;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Поиск…';
+    card.classList.remove('visible');
+
+    try {
+      const res  = await fetch('/vin/lookup?q=' + encodeURIComponent(q));
+      const data = await res.json();
+      if (!res.ok) {
+        card.classList.add('visible');
+        sdot.className = 'status-dot err';
+        sstatus.textContent = 'Ошибка ' + res.status;
+        body.innerHTML = '<div class="raw-block">' + esc(JSON.stringify(data, null, 2)) + '</div>';
+      } else {
+        showResult(data);
+      }
+    } catch (e) {
+      card.classList.add('visible');
+      sdot.className = 'status-dot err';
+      sstatus.textContent = 'Ошибка соединения';
+      body.innerHTML = '<div class="empty-msg">' + esc(e.message) + '</div>';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Найти';
+    }
+  }
+
+  btn.addEventListener('click', lookup);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') lookup(); });
+
+  // Автозапуск если есть q= в URL
+  const urlQ = new URLSearchParams(location.search).get('q');
+  if (urlQ) { input.value = urlQ; lookup(); }
+</script>
+</body>
+</html>

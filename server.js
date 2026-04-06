@@ -375,6 +375,74 @@ app.delete("/xfer/del/:name", (req, res) => {
   res.json({ ok: true });
 });
 
+// ── ARMTEK VIN/PLATE LOOKUP ───────────────────────────────────────────────────
+const ARMTEK_VIN_URL = "https://armtek.ru/rest/ru/laximo-microservice/v1/search/get-data-by-vin-or-plate-number";
+const ARMTEK_BEARER  = process.env.ARMTEK_TOKEN ||
+  "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE4MDU3NjQyNjYsImtleSI6IjcxZDY2YWIxMjk4OThhM2RkZWIxYTI1M2VjZGQ5N2Y5IiwidHlwZSI6Imc5WCIsImRhdGEiOnsibG9naW4iOiJHVUVTVF8xNzc0NjYwMjY2MDMyMTUzIiwidXVpZCI6IkdlN2U0ZGZhYmYzMjI4NzA4MDQxNDA2NTM4NjJiYjY4MCIsInV0eXBlIjoiRyIsInVmdW5jdGlvbiI6bnVsbCwiYWNsU2NoZW1lVHlwZSI6IltcImYwOGI3YzdkLTkxMGQtNDE5MC0zMWVhLWYxOGRmNGIzMTBjMlwiXSJ9fQ==.pNo5QPM73TrJ5+B0pZn76ftD79wswVJp9Ns+s742FYo=";
+const ARMTEK_CAPTCHA = process.env.ARMTEK_CAPTCHA || "c92e38c27cc86fc28c04c3b1b6327239";
+
+function parseArmtekResult(data) {
+  // Laximo возвращает массив вариантов или объект
+  const items = Array.isArray(data?.data) ? data.data
+    : data?.data ? [data.data]
+    : Array.isArray(data) ? data : [];
+
+  return items.map(v => ({
+    vin:          v.vin        || v.Vin        || null,
+    plate:        v.plateNum   || v.plate      || null,
+    brand:        v.brand      || v.Brand      || v.mark   || null,
+    model:        v.model      || v.Model      || null,
+    year:         v.year       || v.Year       || v.modelYear || null,
+    engine_code:  v.engineCode || v.engine     || null,
+    engine_vol:   v.engineCapacity || v.engineVolume || null,
+    body:         v.bodyType   || v.body       || null,
+    color:        v.color      || null,
+    generation:   v.generation || null,
+    raw:          v,
+  }));
+}
+
+app.get("/vin", (req, res) => res.sendFile(__dirname + "/public/vin.html"));
+
+app.get("/vin/lookup", async (req, res) => {
+  const q = (req.query.q || req.query.vin || req.query.plate || "").trim().toUpperCase().replace(/\s/g, "");
+  if (!q) return res.status(400).json({ error: "q (vin or plate) required" });
+
+  try {
+    console.log(`[vin/lookup] q=${q}`);
+    const r = await axios.get(ARMTEK_VIN_URL, {
+      params: { vin: q },
+      headers: {
+        "accept":               "application/json, text/plain, */*",
+        "accept-language":      "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+        "authorization":        ARMTEK_BEARER,
+        "content-type":         "application/json",
+        "x-app-version":        "1.0.12",
+        "x-auth-captcha-hash":  ARMTEK_CAPTCHA,
+        "x-ca-external-system": "IM_RU",
+        "x-ca-vkorg":           "4000",
+        "user-agent":           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+        "referer":              `https://armtek.ru/search?text=${encodeURIComponent(q)}`,
+      },
+      timeout: 12000,
+      validateStatus: s => s < 600,
+    });
+
+    if (r.status !== 200) {
+      console.warn(`[vin/lookup] armtek status=${r.status}`);
+      return res.status(r.status).json({ error: `armtek returned ${r.status}`, raw: r.data });
+    }
+
+    const parsed = parseArmtekResult(r.data);
+    console.log(`[vin/lookup] q=${q} → ${parsed.length} results`);
+    res.json({ q, results: parsed, raw: r.data });
+
+  } catch (e) {
+    console.error("[vin/lookup] error:", e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── ИСТОРИЯ ВИНОВ ─────────────────────────────────────────────────────────────
 app.get("/history/:id", (req, res) => {
   const s = sessions[req.params.id];
