@@ -419,6 +419,36 @@
       padding: 8px 0;
     }
 
+    /* История VIN */
+    .history-section {
+      padding: 16px 24px 24px;
+      display: none;
+    }
+    .history-section.visible { display: block; }
+    .history-hd {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 700; letter-spacing: .5px;
+      text-transform: uppercase; color: var(--soft);
+      margin-bottom: 10px;
+    }
+    .history-list {
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .history-item {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 12px; cursor: pointer;
+      transition: border-color .15s;
+    }
+    .history-item:hover { border-color: var(--accent); }
+    .history-vin {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      font-weight: 600; letter-spacing: 1px; color: var(--muted);
+      min-width: 140px;
+    }
+    .history-car { font-size: 13px; font-weight: 600; }
+    .history-year { font-size: 12px; color: var(--soft); margin-left: auto; }
+
     @media (max-width: 1100px) { .filter-showcase { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 900px) { .rec-grid { grid-template-columns: 1fr 1fr; } }
     @media (max-width: 680px) {
@@ -569,6 +599,11 @@
     <div class="filter-showcase" id="filterGrid"></div>
   </div>
 
+  <div class="history-section" id="historySection">
+    <div class="history-hd">🕐 История VIN</div>
+    <div class="history-list" id="historyList"></div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <script>
@@ -712,7 +747,7 @@
           if (vin) { vinDisplay.textContent = vin.toUpperCase(); updateExtLinks(vin); }
           if (vin && vin !== currentVin) {
             currentVin = vin; vinInput.value = vin.toUpperCase();
-            hideRec(); loadCarInfo(vin); loadLiquids(vin);
+            hideRec(); loadCarInfo(vin); loadLiquids(vin); loadHistory();
           }
         }
       } catch (e) { console.error('poll error', e); }
@@ -992,6 +1027,36 @@
       const file = BRAND_LOGOS[key] || null;
       if (!file) return null;
       return '/logo/' + file + '.webp';
+    }
+
+    async function loadHistory() {
+      if (!sessionId) return;
+      try {
+        const res  = await fetch('/history/' + sessionId);
+        if (!res.ok) return;
+        const list = await res.json();
+        renderHistory(list);
+      } catch (_) {}
+    }
+
+    function renderHistory(list) {
+      const sec  = document.getElementById('historySection');
+      const grid = document.getElementById('historyList');
+      if (!list || list.length < 2) { sec.classList.remove('visible'); return; }
+      grid.innerHTML = list.map(item => {
+        const car = [item.brand, item.model].filter(Boolean).join(' ');
+        return '<div class="history-item" onclick="jumpVin(\'' + esc(item.vin) + '\')">' +
+          '<span class="history-vin">' + esc(item.vin) + '</span>' +
+          (car ? '<span class="history-car">' + esc(car) + '</span>' : '') +
+          (item.year ? '<span class="history-year">' + esc(item.year) + '</span>' : '') +
+        '</div>';
+      }).join('');
+      sec.classList.add('visible');
+    }
+
+    function jumpVin(vin) {
+      document.getElementById('vinInput').value = vin;
+      sendManual();
     }
 
     function copyArticle(el, article) {

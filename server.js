@@ -45,18 +45,26 @@ function saveVIN(session, vin) {
   if (!session.history.includes(vin)) session.history.unshift(vin);
 }
 
+// Маркетинговое обозначение объёма — отличается от технического округления API
+// (напр. D4F: 1149cc → API даёт 1.1, но Renault маркетинг — 1.2)
+const ENGINE_VOLUME_MARKETING = {
+  "D4F": 1.2, "D7F": 1.2,   // Renault 1149cc → 1.2
+};
+
 function normalizeCar(data) {
+  const code = data.engine_code || "";
+  const rawVol = parseFloat((data.engine_volume || "").replace(",", ".")) || null;
+  const volume = ENGINE_VOLUME_MARKETING[code.toUpperCase()] ?? rawVol;
   return {
     brand: data.brand, model: data.model, generation: data.generation,
     year: data.year_manufactured,
-    engine: {
-      code:   data.engine_code,
-      volume: parseFloat(data.engine_volume?.replace(",", ".")),
-      type:   data.engine_type
-    },
+    engine: { code, volume, type: data.engine_type },
     transmission: data.transmission, drive: data.drive, power_hp: parseInt(data.power)
   };
 }
+
+// Глобальный кэш: vin → { brand, model, year } (переживает смену сессии)
+const vinInfoCache = {};
 
 function cleanupFile(p) { try { fs.unlinkSync(p); } catch (_) {} }
 
@@ -191,6 +199,7 @@ app.get("/oil/:vin", async (req, res) => {
 
     const tree = require("./tree.json");
     console.log(`[oil] ${car.brand} ${car.model} ${car.year} engine=${car.engine.code} gptCheck=${gptCheckEnabled}`);
+    vinInfoCache[req.params.vin] = { brand: car.brand, model: car.model, year: car.year };
 
     const filtersPromise = getOriginalFilters(car);
 
@@ -363,6 +372,53 @@ app.delete("/xfer/del/:name", (req, res) => {
   const name = path.basename(req.params.name);
   const file = path.join(__dirname, "uploads/xfer", name);
   try { fs.unlinkSync(file); } catch (_) {}
+  res.json({ ok: true });
+});
+
+// ── ИСТОРИЯ ВИНОВ ─────────────────────────────────────────────────────────────
+app.get("/history/:id", (req, res) => {
+  const s = sessions[req.params.id];
+  if (!s) return res.status(404).json({ error: "session not found" });
+  const list = (s.history || []).map(vin => ({
+    vin,
+    ...(vinInfoCache[vin] || {})
+  }));
+  res.json(list);
+});
+
+// ── СКАЧАТЬ РАСШИРЕНИЕ CHROME ─────────────────────────────────────────────────
+app.get("/extension.zip", async (req, res) => {
+  try {
+    const JSZip   = require("jszip");
+    const extDir  = path.join(__dirname, "extension");
+    if (!fs.existsSync(extDir)) return res.status(404).json({ error: "extension folder not found" });
+    const zip = new JSZip();
+    for (const file of fs.readdirSync(extDir)) {
+      const fp = path.join(extDir, file);
+      if (fs.statSync(fp).isFile()) zip.file(file, fs.readFileSync(fp));
+    }
+    const buf = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
+    res.set({ "Content-Type": "application/zip", "Content-Disposition": "attachment; filename=vinoil-extension.zip" });
+    res.send(buf);
+  } catch (e) {
+    console.error("[extension.zip]", e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── ЧАТ — обмен текстом ───────────────────────────────────────────────────────
+const chatMessages = [];
+app.get("/chat", (req, res) => res.sendFile(__dirname + "/public/chat.html"));
+app.get("/chat/messages", (req, res) => res.json(chatMessages.slice(-100)));
+app.post("/chat/send", (req, res) => {
+  const text = (req.body?.text || "").trim();
+  if (!text) return res.status(400).json({ error: "empty" });
+  if (text === "/clear") {
+    chatMessages.length = 0;
+    return res.json({ ok: true, cleared: true });
+  }
+  chatMessages.push({ text, ts: Date.now() });
+  if (chatMessages.length > 200) chatMessages.splice(0, chatMessages.length - 200);
   res.json({ ok: true });
 });
 
