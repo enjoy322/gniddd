@@ -42,16 +42,42 @@ async function findBrandId(brandName) {
   return found ? found.id : null;
 }
 
-// ── 2. Получаем модификации и ищем подходящую по году/модели ─────────────────
-async function findMod(brandId, modelName, year) {
+// ── Скоринг совпадения модели ─────────────────────────────────────────────────
+function modScore(m, q) {
+  const qWords = q.toLowerCase().split(/\s+/).filter(Boolean);
+  const mWords = m.name.toLowerCase().split(/\s+/).filter(w => !/^\d/.test(w));
+  const covered = qWords.filter(w => mWords.includes(w)).length;
+  const extra   = mWords.filter(w => !qWords.includes(w)).length;
+  return covered * 10 - extra;
+}
+
+// ── Проверяем совпадение кода двигателя ──────────────────────────────────────
+function engineMatches(vehicle, codes) {
+  const vCodes = (vehicle.engineCode || "")
+    .toUpperCase()
+    .split(/[;,\s]+/)
+    .map(c => c.trim())
+    .filter(Boolean);
+  return codes.some(c =>
+    vCodes.includes(c) ||
+    vCodes.some(vc => vc.startsWith(c) || c.startsWith(vc))
+  );
+}
+
+// ── 2+3. Ищем лучшую пару (мод + версия) для данного авто ────────────────────
+// Логика:
+//   1. Собираем все модификации подходящие по году и имени модели
+//   2. Сортируем по скорингу имени
+//   3. Перебираем по убыванию скора: ищем версию с совпадающим кодом мотора
+//   4. Если ни в одной моде нет нашего кода — возвращаем лучшую модель + первую версию
+async function findModAndVehicle(brandId, modelName, year, engineCode) {
   const mods = await get(`modifications/get-list?brand=${brandId}`);
   const q = modelName.toLowerCase().trim();
 
-  // Прямое совпадение имени модели + попадание в года производства
   const candidates = mods.filter(m => {
     const name = m.name.toLowerCase();
-    // Гибкое совпадение: "Sandero II" ≈ "sandero"
-    const nameMatch = name.includes(q) || q.includes(name.split(" ")[0]);
+    const firstWord = q.split(/\s+/)[0];
+    const nameMatch = name.split(/\s+/).includes(firstWord) || name.includes(firstWord);
     if (!nameMatch) return false;
     if (!year) return true;
     const from = m.productionYearFrom || 0;
@@ -59,33 +85,27 @@ async function findMod(brandId, modelName, year) {
     return year >= from && year <= to;
   });
 
-  if (!candidates.length) return null;
-  // Берём наиболее специфичное (длиннее имя = точнее)
-  candidates.sort((a, b) => b.name.length - a.name.length);
-  return candidates[0]; // возвращаем объект целиком, не только id
-}
+  if (!candidates.length) return { mod: null, vehicle: null };
 
-// ── 3. Получаем конкретную версию по коду двигателя ──────────────────────────
-async function findVehicle(modId, engineCode) {
-  const vehicles = await get(`vehicles/get-list?mod=${modId}`);
-  if (!engineCode) return vehicles[0] || null;
+  candidates.sort((a, b) => modScore(b, q) - modScore(a, q));
 
   const codes = engineCode
-    .toUpperCase()
-    .split(/[;,\s]+/)
-    .map(c => c.trim())
-    .filter(Boolean);
+    ? engineCode.toUpperCase().split(/[;,\s]+/).map(c => c.trim()).filter(Boolean)
+    : [];
 
-  const found = vehicles.find(v => {
-    const vCodes = (v.engineCode || "")
-      .toUpperCase()
-      .split(/[;,\s]+/)
-      .map(c => c.trim());
-    return codes.some(c => vCodes.includes(c));
-  });
+  // Перебираем кандидатов: ищем тот где есть точное совпадение кода мотора
+  if (codes.length) {
+    for (const mod of candidates) {
+      const vehicles = await get(`vehicles/get-list?mod=${mod.id}`);
+      const matched = vehicles.find(v => engineMatches(v, codes));
+      if (matched) return { mod, vehicle: matched };
+    }
+  }
 
-  // Фолбэк — первая версия
-  return found || vehicles[0] || null; // объект целиком
+  // Точного совпадения нет — берём лучший мод, первую версию
+  const bestMod = candidates[0];
+  const fallbackVehicles = await get(`vehicles/get-list?mod=${bestMod.id}`);
+  return { mod: bestMod, vehicle: fallbackVehicles[0] || null };
 }
 
 // ── 4. Получаем список деталей и классифицируем ───────────────────────────────
@@ -143,13 +163,11 @@ async function getOriginalFilters(car) {
       return null;
     }
 
-    const mod = await findMod(brandId, car.model, car.year);
+    const { mod, vehicle } = await findModAndVehicle(brandId, car.model, car.year, car.engine?.code);
     if (!mod) {
       console.log(`[getFilters] modification not found: ${car.model} ${car.year}`);
       return null;
     }
-
-    const vehicle = await findVehicle(mod.id, car.engine?.code);
     if (!vehicle) {
       console.log(`[getFilters] vehicle not found for engine: ${car.engine?.code}`);
       return null;
@@ -175,7 +193,9 @@ async function getOriginalFilters(car) {
       `spark=${details.spark_plug.length}`
     );
 
-    return { vehicleId, catalogBreadcrumb, ...details };
+    const catalogUrl = `https://getcat.net/get/demo-maintenance#brand=${brandId}&mod=${mod.id}&veh=${vehicleId}`;
+
+    return { vehicleId, brandId, modId: mod.id, catalogBreadcrumb, catalogUrl, ...details };
   } catch (e) {
     console.error("[getFilters] error:", e.message);
     return null;

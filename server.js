@@ -203,8 +203,8 @@ app.get("/oil/:vin", async (req, res) => {
 
     const filtersPromise = getOriginalFilters(car);
 
-    // filtersUrl — ссылка на каталог ТО (источник данных — getcat.net)
-    const filtersUrl = "https://getcat.net/";
+    // filtersUrl строится динамически после резолва vehicleId из getcat.net
+    // Итоговый вид: https://getcat.net/get/demo-maintenance#brand=38&mod=772&veh=4502
 
     const url = await resolveUrl(car, tree);
 
@@ -235,7 +235,7 @@ app.get("/oil/:vin", async (req, res) => {
         filters,
         breadcrumb: makeBreadcrumb(car),
         filtersBreadcrumb: filters?.catalogBreadcrumb || null,
-        filtersUrl
+        filtersUrl: filters?.catalogUrl || "https://getcat.net/"
       });
     }
 
@@ -280,7 +280,7 @@ app.get("/oil/:vin", async (req, res) => {
         filters,
         breadcrumb: makeBreadcrumb(car),
         filtersBreadcrumb: filters?.catalogBreadcrumb || null,
-        filtersUrl
+        filtersUrl: filters?.catalogUrl || "https://getcat.net/"
       });
     }
 
@@ -310,7 +310,7 @@ app.get("/oil/:vin", async (req, res) => {
         filters,
         breadcrumb: makeBreadcrumb(car),
         filtersBreadcrumb: filters?.catalogBreadcrumb || null,
-        filtersUrl
+        filtersUrl: filters?.catalogUrl || "https://getcat.net/"
       });
     }
 
@@ -330,7 +330,7 @@ app.get("/oil/:vin", async (req, res) => {
       filters,
       breadcrumb: makeBreadcrumb(car),
       filtersBreadcrumb: filters?.catalogBreadcrumb || null,
-      filtersUrl
+      filtersUrl: filters?.catalogUrl || "https://getcat.net/"
     });
 
   } catch (e) {
